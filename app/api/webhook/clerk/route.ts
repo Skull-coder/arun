@@ -9,11 +9,13 @@ import { usersTable } from "@/features/database/schema";
 
 export async function POST(request: NextRequest) {
   let evt: WebhookEvent;
-
-  // 1. Verify the webhook signature
+  
+  // 1. Verify the webhook signature 
   try {
     evt = await verifyWebhook(request);
+    console.log("webhook from clerk EVT:", evt )
   } catch {
+    console.log("still issue")
     return new Response("Invalid webhook signature", { status: 401 });
   }
 

@@ -11,7 +11,7 @@ import {
 // ─── Users (synced from Clerk) ───────────────────────────────────────────────
 
 export const usersTable = pgTable("users", {
-  id: varchar({ length: 255 }).primaryKey(), // Clerk user ID (e.g. user_2abc...)
+  id: varchar({ length: 255 }).primaryKey().unique(), // Clerk user ID (e.g. user_2abc...)
   email: varchar({ length: 255 }).notNull().unique(),
   firstName: varchar({ length: 255 }),
   lastName: varchar({ length: 255 }),
@@ -32,7 +32,6 @@ export const quizzesTable = pgTable("quizzes", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   joinCode: varchar({ length: 10 }).notNull().unique(), // e.g. "XK9M2P"
   isPublished: boolean().notNull().default(false),
-  durationMinutes: integer(), // optional time limit for the quiz
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
 });
@@ -58,6 +57,7 @@ export const questionsTable = pgTable("questions", {
     .notNull()
     .references(() => quizzesTable.id, { onDelete: "cascade" }),
   text: text().notNull(), // the question prompt
+  durationSeconds: integer().default(30).notNull(), // time limit for the specific question
   type: varchar({ length: 30 }).notNull(), // "single_choice" | "multi_choice" | "true_false" | "text" | "sequence"
   config: jsonb().notNull().default({}), // type-specific options (see table above)
   correctAnswer: jsonb().notNull(), // the expected answer (see table above)

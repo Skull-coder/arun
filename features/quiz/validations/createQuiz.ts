@@ -13,6 +13,19 @@ import {
   sequenceAnswerSchema,
 } from "./shared";
 
+// ─── Shared per-question timer ───────────────────────────────────────────────
+//
+// Every question type carries an individual timer in seconds.
+// Range: 5 s – 300 s (5 minutes), default 30 s — mirrors the DB column
+// `questions.durationSeconds integer default(30) notNull`.
+
+const durationSecondsSchema = z
+  .number()
+  .int("Duration must be an integer number of seconds")
+  .min(5, "Duration must be at least 5 seconds")
+  .max(300, "Duration cannot exceed 300 seconds (5 minutes)")
+  .default(30);
+
 // ─── Question schemas (one per type, with cross-field refinement) ───────────
 //
 // Each schema validates:
@@ -22,8 +35,10 @@ import {
 
 const singleChoiceQuestion = z
   .object({
+    id: z.number().int().positive().optional(),
     type: z.literal("single_choice"),
     text: z.string().min(1, "Question text is required").max(2000),
+    durationSeconds: durationSecondsSchema,
     config: singleChoiceConfigSchema,
     correctAnswer: singleChoiceAnswerSchema,
     marks: z.number().int("Marks must be an integer").positive("Marks must be positive"),
@@ -39,8 +54,10 @@ const singleChoiceQuestion = z
 
 const multiChoiceQuestion = z
   .object({
+    id: z.number().int().positive().optional(),
     type: z.literal("multi_choice"),
     text: z.string().min(1, "Question text is required").max(2000),
+    durationSeconds: durationSecondsSchema,
     config: multiChoiceConfigSchema,
     correctAnswer: multiChoiceAnswerSchema,
     marks: z.number().int().positive("Marks must be positive"),
@@ -65,8 +82,10 @@ const multiChoiceQuestion = z
   );
 
 const trueFalseQuestion = z.object({
+  id: z.number().int().positive().optional(),
   type: z.literal("true_false"),
   text: z.string().min(1, "Question text is required").max(2000),
+  durationSeconds: durationSecondsSchema,
   config: trueFalseConfigSchema,
   correctAnswer: trueFalseAnswerSchema,
   marks: z.number().int().positive("Marks must be positive"),
@@ -74,8 +93,10 @@ const trueFalseQuestion = z.object({
 });
 
 const textQuestion = z.object({
+  id: z.number().int().positive().optional(),
   type: z.literal("text"),
   text: z.string().min(1, "Question text is required").max(2000),
+  durationSeconds: durationSecondsSchema,
   config: textConfigSchema,
   correctAnswer: textAnswerSchema,
   marks: z.number().int().positive("Marks must be positive"),
@@ -84,8 +105,10 @@ const textQuestion = z.object({
 
 const sequenceQuestion = z
   .object({
+    id: z.number().int().positive().optional(),
     type: z.literal("sequence"),
     text: z.string().min(1, "Question text is required").max(2000),
+    durationSeconds: durationSecondsSchema,
     config: sequenceConfigSchema,
     correctAnswer: sequenceAnswerSchema,
     marks: z.number().int().positive("Marks must be positive"),
@@ -132,11 +155,6 @@ export const createQuizSchema = z.object({
     .min(1, "Quiz title is required")
     .max(255, "Title must be at most 255 characters"),
   description: z.string().max(5000).optional(),
-  durationMinutes: z
-    .number()
-    .int("Duration must be a whole number")
-    .positive("Duration must be positive")
-    .optional(),
   questions: z
     .array(questionSchema)
     .min(1, "A quiz must have at least 1 question")
