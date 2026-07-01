@@ -20,6 +20,7 @@ export async function createQuiz(userId: string, data: CreateQuizInput) {
 
   // Generate a unique join code (retry on collision)
   const joinCode = await generateJoinCode();
+  let totalMarks = 0;
 
   // Insert quiz + questions atomically
   const [quiz] = await db.transaction(async (tx) => {
@@ -35,6 +36,8 @@ export async function createQuiz(userId: string, data: CreateQuizInput) {
       .returning();
 
     if (questions.length > 0) {
+
+      
       await tx.insert(questionsTable).values(
         questions.map((q) => ({
           quizId: created.id,
@@ -47,6 +50,11 @@ export async function createQuiz(userId: string, data: CreateQuizInput) {
           order: q.orderIndex,
         }))
       );
+      
+      totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
+
+      await tx.update(quizzesTable).set({ totalMarks }).where(eq(quizzesTable.id, created.id));
+
     }
 
     return [created];
