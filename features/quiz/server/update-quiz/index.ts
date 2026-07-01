@@ -10,13 +10,24 @@ export async function updateQuiz(quizId: number, userId: string, data: UpdateQui
     return authResult;
   }
 
-  const { title, description, questions, questionOrders } = data;
+  const { title, description, isPublished, questions, questionOrders } = data;
+
+  if (isPublished === true) {
+    const currentQuiz = await getQuizOrFail(quizId, userId);
+    if (!("error" in currentQuiz)) {
+      const questionsCount = questions ? questions.length : currentQuiz.quiz.questions.length;
+      if (questionsCount === 0) {
+        return { error: "Cannot publish a quiz with no questions", status: 400 };
+      }
+    }
+  }
 
   await db.transaction(async (tx) => {
     // 1. Update quiz-level metadata fields
     const quizUpdateData: Record<string, unknown> = {};
     if (title !== undefined) quizUpdateData.title = title;
     if (description !== undefined) quizUpdateData.description = description;
+    if (isPublished !== undefined) quizUpdateData.isPublished = isPublished;
 
     if (Object.keys(quizUpdateData).length > 0) {
       await tx

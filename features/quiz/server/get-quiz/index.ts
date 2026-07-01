@@ -138,11 +138,23 @@ export async function getQuiz(quizId: number, userId: string) {
     return result;
   }
 
-  // Strip correctAnswer from questions if the viewer is not the owner
   const isOwner = result.quiz.creatorId === userId;
+  
+  let visibleQuestions = result.quiz.questions;
+  
+  if (!isOwner) {
+    // For students, only show the active question
+    const activeQuestionId = result.quiz.currentQuestionId;
+    if (activeQuestionId) {
+      visibleQuestions = visibleQuestions.filter(q => q.id === activeQuestionId);
+    } else {
+      visibleQuestions = [];
+    }
+  }
+
   const quiz = {
     ...result.quiz,
-    questions: result.quiz.questions.map((q) =>
+    questions: visibleQuestions.map((q) =>
       isOwner ? q : { ...q, correctAnswer: undefined }
     ),
   };
