@@ -25,7 +25,8 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
       .update(quizzesTable)
       .set({ 
         status: "in_progress",
-        currentQuestionId: firstQuestion?.id ?? null
+        currentQuestionId: firstQuestion?.id ?? null,
+        currentQuestionStartedAt: new Date()
       })
       .where(eq(quizzesTable.id, quizId));
       
@@ -72,13 +73,13 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
       // We reached the end of the quiz
       await db
         .update(quizzesTable)
-        .set({ status: "completed", currentQuestionId: null })
+        .set({ status: "completed", currentQuestionId: null, currentQuestionStartedAt: null })
         .where(eq(quizzesTable.id, quizId));
     } else {
       // Move to the next question
       await db
         .update(quizzesTable)
-        .set({ currentQuestionId: nextQuestionId })
+        .set({ currentQuestionId: nextQuestionId, currentQuestionStartedAt: new Date() })
         .where(eq(quizzesTable.id, quizId));
     }
     
@@ -88,7 +89,7 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
   if (action === "end") {
     await db
       .update(quizzesTable)
-      .set({ status: "completed", currentQuestionId: null })
+      .set({ status: "completed", currentQuestionId: null, currentQuestionStartedAt: null })
       .where(eq(quizzesTable.id, quizId));
       
     return { success: true, status: 200 };
