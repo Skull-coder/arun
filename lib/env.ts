@@ -5,7 +5,7 @@ const envSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
 
-  DATABASE_URL: z.url(),
+  DATABASE_URL: z.string(),
 
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
   CLERK_SECRET_KEY: z.string(),
