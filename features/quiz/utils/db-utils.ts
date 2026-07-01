@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { quizzesTable, questionsTable, usersTable } from "@/features/database/schema";
+import { quizzesTable, questionsTable, usersTable, quizSessionsTable } from "@/features/database/schema";
 
 export async function generateJoinCode(): Promise<string> {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // excludes 0/O, 1/I/L
@@ -48,10 +48,27 @@ export async function getQuizOrFail(
 
   if (!quiz) return { error: "Quiz not found", status: 404 };
 
-  // Educators can only access their own quizzes (published or not).
-  // Students can only access published quizzes.
-  if (quiz.creatorId !== userId && !quiz.isPublished) {
-    return { error: "Quiz not found", status: 404 };
+  // If the user is not the creator, enforce access rules
+  if (quiz.creatorId !== userId) {
+    if (!quiz.isPublished) {
+      return { error: "Quiz not found", status: 404 };
+    }
+
+    // Check if the student has joined this quiz (has a session)
+    const [session] = await db
+      .select({ id: quizSessionsTable.id })
+      .from(quizSessionsTable)
+      .where(
+        and(
+          eq(quizSessionsTable.quizId, quizId),
+          eq(quizSessionsTable.studentId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!session) {
+      return { error: "You must join this quiz first", status: 403 };
+    }
   }
 
   return { quiz };

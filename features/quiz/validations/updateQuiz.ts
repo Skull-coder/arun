@@ -16,6 +16,7 @@ export const updateQuizSchema = z.object({
   quizId: z.number().int().positive("quizId must be a positive integer"),
   title: createQuizSchema.shape.title.optional(),
   description: createQuizSchema.shape.description.optional(),
+  isPublished: z.boolean().optional(),
   // Full replacement of the question set (delete existing, insert new)
   questions: createQuizSchema.shape.questions.optional(),
   // Lightweight reorder / timer patch — no full replacement needed

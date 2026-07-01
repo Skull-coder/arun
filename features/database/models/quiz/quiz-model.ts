@@ -32,6 +32,9 @@ export const quizzesTable = pgTable("quizzes", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   joinCode: varchar({ length: 10 }).notNull().unique(), // e.g. "XK9M2P"
   isPublished: boolean().notNull().default(false),
+  status: varchar({ length: 30 }).notNull().default("draft"), // "draft" | "waiting" | "in_progress" | "completed"
+  currentQuestionId: integer(), // Track the active question for live quizzes
+  currentQuestionStartedAt: timestamp(), // Used to enforce durationSeconds on the backend
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
 });
