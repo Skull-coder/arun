@@ -1,4 +1,4 @@
-import { eq, asc, gt, and } from "drizzle-orm";
+import { eq, asc, gt, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable } from "@/features/database/schema";
 import { requireEducatorOwnership } from "../../utils/db-utils";
@@ -30,6 +30,11 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
       })
       .where(eq(quizzesTable.id, quizId));
       
+    // 📢 BROADCAST TO WEBSOCKETS!
+    if ((global as any).io) {
+      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+    }
+
     return { success: true, status: 200 };
   }
 
@@ -83,6 +88,11 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
         .where(eq(quizzesTable.id, quizId));
     }
     
+    // 📢 BROADCAST TO WEBSOCKETS!
+    if ((global as any).io) {
+      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+    }
+
     return { success: true, status: 200 };
   }
 
@@ -92,6 +102,31 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
       .set({ status: "completed", currentQuestionId: null, currentQuestionStartedAt: null })
       .where(eq(quizzesTable.id, quizId));
       
+    // 📢 BROADCAST TO WEBSOCKETS!
+    if ((global as any).io) {
+      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+    }
+
+    return { success: true, status: 200 };
+  }
+
+  if (action === "add_time") {
+    const timeToAdd = data.timeToAddSeconds ?? 15;
+    
+    // By shifting the start time forward, we effectively decrease the "elapsed time"
+    // calculated during submitAnswer, giving the students more time!
+    await db
+      .update(quizzesTable)
+      .set({ 
+        currentQuestionStartedAt: sql`${quizzesTable.currentQuestionStartedAt} + interval '${sql.raw(timeToAdd.toString())} seconds'` 
+      })
+      .where(eq(quizzesTable.id, quizId));
+      
+    // 📢 BROADCAST TO WEBSOCKETS!
+    if ((global as any).io) {
+      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+    }
+
     return { success: true, status: 200 };
   }
 
