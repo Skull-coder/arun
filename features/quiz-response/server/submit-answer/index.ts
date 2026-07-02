@@ -150,6 +150,15 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     .set({ totalScore: Number(sumResult.total) })
     .where(eq(quizSessionsTable.id, session.id));
 
+  // 📢 BROADCAST TO WEBSOCKETS!
+  // Tell the specific host room that someone just answered, so they can update the UI counter!
+  if ((global as any).io) {
+    (global as any).io.to(`quiz-${quizId}-host`).emit("student_answered", { 
+      studentId: userId,
+      questionId: questionId
+    });
+  }
+
   // Do not expose correct answers in the response to prevent cheating!
   return { success: true, isCorrect, status: 200 };
 }
