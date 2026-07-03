@@ -25,6 +25,7 @@ export default function HostQuizPage() {
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [now, setNow] = useState(new Date().getTime());
+  const [liveStudentCount, setLiveStudentCount] = useState(0);
 
   const quiz = data?.quiz;
 
@@ -37,15 +38,17 @@ export default function HostQuizPage() {
     });
 
     newSocket.on("connect", () => {
-      newSocket.emit("join_quiz_room", quiz.id);
+      newSocket.emit("join_host", { quizId: quiz.id });
     });
 
     newSocket.on("quiz_state_updated", () => {
       queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
     });
 
-    newSocket.on("student_joined", (data: any) => {
-      toast.success(`${data.studentName} joined the quiz!`);
+    newSocket.on("live_count_updated", (data: any) => {
+      // Data contains the number of connected sockets in the room
+      // Wait, we need to subtract 1 because the host itself is also in the room!
+      setLiveStudentCount(Math.max(0, data.count - 1));
     });
 
     setSocket(newSocket);
@@ -55,6 +58,13 @@ export default function HostQuizPage() {
     };
   }, [quiz?.id, params.id, queryClient]);
 
+  // Sync initial student count
+  useEffect(() => {
+    if (quiz?.studentCount !== undefined) {
+      setLiveStudentCount(quiz.studentCount);
+    }
+  }, [quiz?.studentCount]);
+
   // Timer interval
   useEffect(() => {
     const interval = setInterval(() => {
@@ -62,6 +72,13 @@ export default function HostQuizPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Automatically open the quiz (transition from draft to waiting) when the host lands here
+  useEffect(() => {
+    if (quiz && quiz.status === "draft") {
+      hostControl({ action: "open" as any }); // 'open' might not be perfectly typed locally, but the API will accept it
+    }
+  }, [quiz?.status]);
 
   if (isLoading) {
     return (
@@ -98,12 +115,12 @@ export default function HostQuizPage() {
     timeRemaining = Math.max(0, currentQuestion.durationSeconds - elapsed);
   }
 
-  const handleAction = (action: "start" | "next" | "end" | "add_time") => {
+  const handleAction = (action: "start" | "next" | "end" | "add_time", timeToAddSeconds: number ) => {
     if (action === "end") {
       if (!window.confirm("Are you sure you want to end the quiz early?")) return;
     }
     hostControl(
-      { action },
+      { action, timeToAddSeconds },
       {
         onSuccess: () => {
           toast.success(`Action "${action}" successful`);
@@ -273,7 +290,7 @@ export default function HostQuizPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
             <Users className="h-4 w-4 text-muted-foreground" />
-            Live
+            {liveStudentCount} {liveStudentCount === 1 ? "Student" : "Students"}
           </div>
         </div>
       </header>

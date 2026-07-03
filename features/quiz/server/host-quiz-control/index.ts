@@ -12,6 +12,28 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
 
   const { action } = data;
 
+  if (action === "open") {
+    // Only allow opening if it's currently a draft
+    const [quiz] = await db
+      .select({ status: quizzesTable.status })
+      .from(quizzesTable)
+      .where(eq(quizzesTable.id, quizId))
+      .limit(1);
+
+    if (quiz && quiz.status === "draft") {
+      await db
+        .update(quizzesTable)
+        .set({ status: "waiting", isPublished: true })
+        .where(eq(quizzesTable.id, quizId));
+
+      // 📢 BROADCAST TO WEBSOCKETS!
+      if ((global as any).io) {
+        (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+      }
+    }
+    return { success: true, status: 200 };
+  }
+
   if (action === "start") {
     // Find the first question
     const [firstQuestion] = await db

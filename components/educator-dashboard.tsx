@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useUser, SignOutButton, UserButton } from "@clerk/nextjs";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -96,6 +98,9 @@ export default function EducatorDashboard({ user }: Props) {
   const { data: quizzes, isLoading } = useGetQuizzes();
   const { mutate: deleteQuiz, isPending: isDeleting } = useDeleteQuiz();
 
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -119,12 +124,17 @@ export default function EducatorDashboard({ user }: Props) {
     });
   }, [quizzes, search, statusFilter]);
 
-  const handleDelete = (quiz: any) => {
+  const handleDelete = async (quiz: any) => {
+    console.log("Deleting quiz:", quiz);
     if (!window.confirm(`Delete "${quiz.title}"? This cannot be undone.`)) return;
     setDeletingId(quiz.id);
     deleteQuiz(quiz.id, {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success(`"${quiz.title}" deleted successfully.`);
+        // Force TanStack Query to refetch
+        await queryClient.invalidateQueries({ queryKey: ["quizzes"] });
+        // Force Next.js router to refresh
+        router.refresh();
         setDeletingId(null);
       },
       onError: (err: Error) => {
@@ -355,7 +365,9 @@ export default function EducatorDashboard({ user }: Props) {
                           size="sm"
                           className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                           disabled={deletingId === quiz.id}
-                          onClick={() => handleDelete(quiz)}
+                          onClick={() => {
+                            handleDelete(quiz);
+                          }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

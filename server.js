@@ -23,8 +23,9 @@ app.prepare().then(() => {
     }
   });
 
-  // Initialize Socket.io natively without custom path constraints
+  // Initialize Socket.io natively with the correct path
   const io = new Server(httpServer, {
+    path: "/api/socket/io",
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
@@ -39,15 +40,16 @@ app.prepare().then(() => {
     console.log("🔌 Client connected:", socket.id);
 
     // 1. Student joins a quiz room
-    socket.on("join_quiz", ({ quizId, userId }) => {
-      if (!quizId || !userId) return;
+    socket.on("join_quiz", ({ quizId }) => {
+      if (!quizId) return;
       
       const room = `quiz-${quizId}`;
       socket.join(room);
-      console.log(`🙋 Student ${userId} joined room ${room}`);
+      console.log(`🙋 Student joined room ${room}`);
 
-      // Broadcast to the host room that this student joined
-      io.to(`${room}-host`).emit("student_joined", { userId });
+      // Broadcast updated live count to everyone in the room (including host)
+      const count = io.sockets.adapter.rooms.get(room)?.size || 0;
+      io.to(room).emit("live_count_updated", { count });
     });
 
     // 2. Host joins the host room
@@ -56,9 +58,24 @@ app.prepare().then(() => {
       const hostRoom = `quiz-${quizId}-host`;
       
       socket.join(hostRoom);
-      socket.join(`quiz-${quizId}`); // Host also listens to general room events
+      const room = `quiz-${quizId}`;
+      socket.join(room); // Host also listens to general room events
       
       console.log(`👑 Host joined room ${hostRoom}`);
+      
+      // Update host with current count
+      const count = io.sockets.adapter.rooms.get(room)?.size || 0;
+      socket.emit("live_count_updated", { count });
+    });
+
+    socket.on("disconnecting", () => {
+      for (const room of socket.rooms) {
+        if (room.startsWith("quiz-") && !room.endsWith("-host")) {
+          // Socket is leaving, so actual count will be size - 1
+          const currentSize = io.sockets.adapter.rooms.get(room)?.size || 1;
+          io.to(room).emit("live_count_updated", { count: currentSize - 1 });
+        }
+      }
     });
 
     socket.on("disconnect", () => {

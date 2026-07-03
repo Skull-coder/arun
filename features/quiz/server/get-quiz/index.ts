@@ -1,4 +1,4 @@
-import { eq, desc, count, inArray } from "drizzle-orm";
+import { eq, desc, count, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable, quizSessionsTable } from "@/features/database/schema";
 import { getQuizOrFail } from "../../utils/db-utils";
@@ -154,8 +154,14 @@ export async function getQuiz(quizId: number, userId: string) {
     }
   }
 
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(quizSessionsTable)
+    .where(eq(quizSessionsTable.quizId, quizId));
+
   const quiz = {
     ...result.quiz,
+    studentCount: Number(count),
     questions: visibleQuestions.map((q) =>
       isOwner ? q : { ...q, correctAnswer: undefined }
     ),
