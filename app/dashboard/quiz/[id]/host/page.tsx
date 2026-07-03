@@ -27,7 +27,22 @@ export default function HostQuizPage() {
   const [now, setNow] = useState(new Date().getTime());
   const [liveStudentCount, setLiveStudentCount] = useState(0);
 
+  // Voting state
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
+  const [totalVoted, setTotalVoted] = useState(0);
+  const [trackedQuestionId, setTrackedQuestionId] = useState<number | null>(null);
+
   const quiz = data?.quiz;
+  const currentQuestionId = quiz?.currentQuestionId;
+
+  // Reset votes when question changes
+  useEffect(() => {
+    if (currentQuestionId && currentQuestionId !== trackedQuestionId) {
+      setVoteCounts({});
+      setTotalVoted(0);
+      setTrackedQuestionId(currentQuestionId);
+    }
+  }, [currentQuestionId, trackedQuestionId]);
 
   useEffect(() => {
     if (!quiz) return;
@@ -46,9 +61,29 @@ export default function HostQuizPage() {
     });
 
     newSocket.on("live_count_updated", (data: any) => {
-      // Data contains the number of connected sockets in the room
-      // Wait, we need to subtract 1 because the host itself is also in the room!
       setLiveStudentCount(Math.max(0, data.count - 1));
+    });
+
+    newSocket.on("answer_submitted", (data: { questionId: number, answer: any }) => {
+      // Only process if it matches the current question
+      setVoteCounts((prev) => {
+        const newCounts = { ...prev };
+        
+        // Handle array of answers (e.g., multi_choice or sequence)
+        if (Array.isArray(data.answer)) {
+          data.answer.forEach((ans) => {
+            const key = String(ans);
+            newCounts[key] = (newCounts[key] || 0) + 1;
+          });
+        } else {
+          // Handle single answer (single_choice, true_false, text)
+          const key = String(data.answer);
+          newCounts[key] = (newCounts[key] || 0) + 1;
+        }
+        
+        return newCounts;
+      });
+      setTotalVoted((prev) => prev + 1);
     });
 
     setSocket(newSocket);
@@ -149,63 +184,92 @@ export default function HostQuizPage() {
                 ? ans === opt.id 
                 : Array.isArray(ans) && ans.includes(opt.id);
             
-            return (
-              <div 
-                key={opt.id} 
-                className={cn(
-                  "flex items-center justify-between p-6 rounded-xl border-2 shadow-sm transition-colors",
-                  isCorrect 
-                    ? "border-green-500 bg-green-500/10 text-green-700" 
-                    : "border-border bg-card"
-                )}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
-                    isCorrect ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
-                  )}>
-                    {labels[i]}
+              const optionVotes = voteCounts[String(opt.id)] || 0;
+              const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
+
+              return (
+                <div 
+                  key={opt.id} 
+                  className={cn(
+                    "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-2 shadow-sm transition-colors",
+                    isCorrect 
+                      ? "border-green-500 bg-green-500/10 text-green-700" 
+                      : "border-border bg-card"
+                  )}
+                >
+                  {/* Progress Bar Background */}
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+                    style={{ width: `${percentage}%` }}
+                  />
+                  
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                      isCorrect ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                    )}>
+                      {labels[i]}
+                    </div>
+                    <span className={cn("text-xl font-medium", isCorrect ? "text-foreground" : "text-foreground")}>
+                      {opt.text}
+                    </span>
                   </div>
-                  <span className={cn("text-xl font-medium", isCorrect ? "text-foreground" : "text-foreground")}>
-                    {opt.text}
-                  </span>
+                  
+                  <div className="flex items-center gap-3 relative z-10">
+                    <span className="font-bold text-lg text-muted-foreground">{percentage}%</span>
+                    {isCorrect && (
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px]">
+                        Correct
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                {isCorrect && (
-                  <Badge variant="default" className="bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px]">
-                    Correct
-                  </Badge>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       );
     }
     
     if (currentQuestion.type === "true_false") {
+      const trueVotes = voteCounts["true"] || 0;
+      const falseVotes = voteCounts["false"] || 0;
+      const truePct = totalVoted > 0 ? Math.round((trueVotes / totalVoted) * 100) : 0;
+      const falsePct = totalVoted > 0 ? Math.round((falseVotes / totalVoted) * 100) : 0;
+
       return (
         <div className="flex gap-6 mt-8 w-full max-w-2xl mx-auto">
           <div className={cn(
-            "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-2 shadow-sm relative",
-            ans === true ? "border-green-500 bg-green-500/10" : "border-primary/20 bg-primary/5"
+            "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-2 shadow-sm relative overflow-hidden transition-colors",
+            ans === true ? "border-green-500 bg-green-500/10 text-green-700" : "border-border bg-card text-primary"
           )}>
+            <div 
+              className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+              style={{ height: `${truePct}%` }}
+            />
             {ans === true && (
-              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px]">
+              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] z-10">
                 Correct
               </Badge>
             )}
-            <span className={cn("text-3xl font-bold", ans === true ? "text-green-600" : "text-primary")}>True</span>
+            <span className={cn("text-3xl font-bold z-10", ans === true ? "text-green-600" : "")}>True</span>
+            <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>
           </div>
+
           <div className={cn(
-            "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-2 shadow-sm relative",
-            ans === false ? "border-green-500 bg-green-500/10" : "border-destructive/20 bg-destructive/5"
+            "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-2 shadow-sm relative overflow-hidden transition-colors",
+            ans === false ? "border-green-500 bg-green-500/10 text-green-700" : "border-border bg-card text-destructive"
           )}>
+            <div 
+              className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+              style={{ height: `${falsePct}%` }}
+            />
             {ans === false && (
-              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px]">
+              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] z-10">
                 Correct
               </Badge>
             )}
-            <span className={cn("text-3xl font-bold", ans === false ? "text-green-600" : "text-destructive")}>False</span>
+            <span className={cn("text-3xl font-bold z-10", ans === false ? "text-green-600" : "")}>False</span>
+            <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>
           </div>
         </div>
       );
@@ -288,6 +352,11 @@ export default function HostQuizPage() {
         )}
 
         <div className="flex items-center gap-3">
+          {isInProgress && (
+            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20">
+              <span className="font-bold">{totalVoted} / {liveStudentCount}</span> Voted
+            </div>
+          )}
           <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
             <Users className="h-4 w-4 text-muted-foreground" />
             {liveStudentCount} {liveStudentCount === 1 ? "Student" : "Students"}

@@ -35,8 +35,10 @@ export default function StudentQuizPage() {
   const [sequenceOrder, setSequenceOrder] = useState<string[]>([]);
   const [submittedStatus, setSubmittedStatus] = useState<"correct" | "incorrect" | "submitted" | null>(null);
   
-  // Track the current question ID so we can reset state when it changes
   const [trackedQuestionId, setTrackedQuestionId] = useState<number | null>(null);
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
+  const [totalVoted, setTotalVoted] = useState(0);
+  const [shuffledSequenceItems, setShuffledSequenceItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (!quiz) return;
@@ -61,6 +63,28 @@ export default function StudentQuizPage() {
       setLiveStudentCount(Math.max(0, data.count - 1));
     });
 
+    newSocket.on("answer_submitted", (data: { questionId: number, answer: any }) => {
+      // Only process if it matches the current question
+      setVoteCounts((prev) => {
+        const newCounts = { ...prev };
+        
+        // Handle array of answers (e.g., multi_choice or sequence)
+        if (Array.isArray(data.answer)) {
+          data.answer.forEach((ans) => {
+            const key = String(ans);
+            newCounts[key] = (newCounts[key] || 0) + 1;
+          });
+        } else {
+          // Handle single answer (single_choice, true_false, text)
+          const key = String(data.answer);
+          newCounts[key] = (newCounts[key] || 0) + 1;
+        }
+        
+        return newCounts;
+      });
+      setTotalVoted((prev) => prev + 1);
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -82,6 +106,8 @@ export default function StudentQuizPage() {
       setSelectedAnswer(null);
       setSequenceOrder([]);
       setSubmittedStatus(null);
+      setVoteCounts({});
+      setTotalVoted(0);
     }
   }, [quiz?.currentQuestionId, trackedQuestionId]);
 
@@ -195,6 +221,9 @@ export default function StudentQuizPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isSelected = selectedAnswer === opt.id;
+            const optionVotes = voteCounts[String(opt.id)] || 0;
+            const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
+            
             return (
               <button
                 key={opt.id}
@@ -203,7 +232,7 @@ export default function StudentQuizPage() {
                   setSelectedAnswer(opt.id);
                 }}
                 className={cn(
-                  "flex items-center gap-4 p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
+                  "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
                   isSelected 
                     ? "border-primary bg-primary/10" 
                     : "border-border bg-card hover:border-primary/40",
@@ -211,13 +240,22 @@ export default function StudentQuizPage() {
                   disabled && isSelected && "opacity-100 cursor-not-allowed"
                 )}
               >
-                <div className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
-                  isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {labels[i]}
+                <div 
+                  className="absolute left-0 top-0 bottom-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+                  style={{ width: `${percentage}%` }}
+                />
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                    isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {labels[i]}
+                  </div>
+                  <span className="text-xl font-medium text-foreground">{opt.text}</span>
                 </div>
-                <span className="text-xl font-medium text-foreground">{opt.text}</span>
+                {disabled && (
+                  <span className="font-bold text-lg text-muted-foreground relative z-10">{percentage}%</span>
+                )}
               </button>
             );
           })}
@@ -232,6 +270,9 @@ export default function StudentQuizPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isSelected = Array.isArray(selectedAnswer) && selectedAnswer.includes(opt.id);
+            const optionVotes = voteCounts[String(opt.id)] || 0;
+            const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
+
             return (
               <button
                 key={opt.id}
@@ -245,7 +286,7 @@ export default function StudentQuizPage() {
                   }
                 }}
                 className={cn(
-                  "flex items-center gap-4 p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
+                  "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
                   isSelected 
                     ? "border-primary bg-primary/10" 
                     : "border-border bg-card hover:border-primary/40",
@@ -253,13 +294,22 @@ export default function StudentQuizPage() {
                   disabled && isSelected && "opacity-100 cursor-not-allowed"
                 )}
               >
-                <div className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
-                  isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {labels[i]}
+                <div 
+                  className="absolute left-0 top-0 bottom-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+                  style={{ width: `${percentage}%` }}
+                />
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                    isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {labels[i]}
+                  </div>
+                  <span className="text-xl font-medium text-foreground">{opt.text}</span>
                 </div>
-                <span className="text-xl font-medium text-foreground">{opt.text}</span>
+                {disabled && (
+                  <span className="font-bold text-lg text-muted-foreground relative z-10">{percentage}%</span>
+                )}
               </button>
             );
           })}
@@ -268,29 +318,44 @@ export default function StudentQuizPage() {
     }
 
     if (currentQuestion.type === "true_false") {
+      const trueVotes = voteCounts["true"] || 0;
+      const falseVotes = voteCounts["false"] || 0;
+      const truePct = totalVoted > 0 ? Math.round((trueVotes / totalVoted) * 100) : 0;
+      const falsePct = totalVoted > 0 ? Math.round((falseVotes / totalVoted) * 100) : 0;
+
       return (
         <div className="flex flex-col sm:flex-row gap-6 mt-8 w-full max-w-2xl mx-auto">
           <button
             disabled={disabled}
             onClick={() => setSelectedAnswer(true)}
             className={cn(
-              "flex-1 flex items-center justify-center p-8 rounded-xl border-4 shadow-sm transition-all active:scale-95",
-              selectedAnswer === true ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/40",
+              "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
+              selectedAnswer === true ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
               disabled && selectedAnswer !== true && "opacity-50 cursor-not-allowed"
             )}
           >
-            <span className={cn("text-3xl font-bold", selectedAnswer === true ? "text-primary" : "text-foreground")}>True</span>
+            <div 
+              className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+              style={{ height: `${truePct}%` }}
+            />
+            <span className={cn("text-3xl font-bold z-10", selectedAnswer === true ? "text-primary" : "text-foreground")}>True</span>
+            {disabled && <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>}
           </button>
           <button
             disabled={disabled}
             onClick={() => setSelectedAnswer(false)}
             className={cn(
-              "flex-1 flex items-center justify-center p-8 rounded-xl border-4 shadow-sm transition-all active:scale-95",
-              selectedAnswer === false ? "border-destructive bg-destructive/10" : "border-border bg-card hover:border-destructive/40",
+              "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
+              selectedAnswer === false ? "border-destructive bg-destructive/5" : "border-border bg-card hover:border-destructive/40",
               disabled && selectedAnswer !== false && "opacity-50 cursor-not-allowed"
             )}
           >
-            <span className={cn("text-3xl font-bold", selectedAnswer === false ? "text-destructive" : "text-foreground")}>False</span>
+            <div 
+              className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
+              style={{ height: `${falsePct}%` }}
+            />
+            <span className={cn("text-3xl font-bold z-10", selectedAnswer === false ? "text-destructive" : "text-foreground")}>False</span>
+            {disabled && <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>}
           </button>
         </div>
       );
@@ -363,6 +428,11 @@ export default function StudentQuizPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {isInProgress && (
+            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20">
+              <span className="font-bold">{totalVoted} / {liveStudentCount}</span> Voted
+            </div>
+          )}
           <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
             <Users className="h-4 w-4 text-muted-foreground" />
             {liveStudentCount} {liveStudentCount === 1 ? "Student" : "Students"}

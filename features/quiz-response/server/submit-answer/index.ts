@@ -151,11 +151,11 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     .where(eq(quizSessionsTable.id, session.id));
 
   // 📢 BROADCAST TO WEBSOCKETS!
-  // Tell the specific host room that someone just answered, so they can update the UI counter!
+  // Tell everyone (host and students) that someone just answered, so they can update the live poll!
   if ((global as any).io) {
-    (global as any).io.to(`quiz-${quizId}-host`).emit("student_answered", { 
-      studentId: userId,
-      questionId: questionId
+    (global as any).io.to(`quiz-${quizId}`).emit("answer_submitted", { 
+      questionId: questionId,
+      answer: answer
     });
   }
 
