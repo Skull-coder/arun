@@ -32,6 +32,8 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
       creatorId: quizzesTable.creatorId,
       joinCode: quizzesTable.joinCode,
       isPublished: quizzesTable.isPublished,
+      status: quizzesTable.status,
+      totalMarks: quizzesTable.totalMarks,
       createdAt: quizzesTable.createdAt,
       updatedAt: quizzesTable.updatedAt,
     })
