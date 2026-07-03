@@ -283,19 +283,24 @@ export default function HostQuizPage() {
         <div className="flex flex-col gap-3 mt-8 w-full max-w-2xl mx-auto">
           {items.map((item: any, i: number) => {
             const correctPos = Array.isArray(ans) ? ans.indexOf(item.id) + 1 : null;
+            const isCorrect = correctPos !== null && correctPos > 0;
             return (
-              <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border-2 border-border bg-card shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
-                    {i + 1}
-                  </div>
-                  <span className="text-lg font-medium text-foreground">{item.text}</span>
-                </div>
-                {correctPos !== null && correctPos > 0 && (
-                  <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">
-                    Correct position: {correctPos}
-                  </Badge>
+              <div 
+                key={item.id} 
+                className={cn(
+                  "flex items-center gap-4 p-4 rounded-xl border-4 text-left shadow-sm",
+                  isCorrect 
+                    ? "border-primary bg-primary/10" 
+                    : "border-border bg-card"
                 )}
+              >
+                <div className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                  isCorrect ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {isCorrect ? correctPos : ""}
+                </div>
+                <span className="text-lg font-medium text-foreground">{item.text}</span>
               </div>
             );
           })}

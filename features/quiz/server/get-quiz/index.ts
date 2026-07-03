@@ -36,36 +36,19 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
       totalMarks: quizzesTable.totalMarks,
       createdAt: quizzesTable.createdAt,
       updatedAt: quizzesTable.updatedAt,
+      questionCount: count(questionsTable.id),
     })
     .from(quizzesTable)
+    .leftJoin(questionsTable, eq(quizzesTable.id, questionsTable.quizId))
     .where(eq(quizzesTable.creatorId, userId))
+    .groupBy(quizzesTable.id)
     .orderBy(desc(quizzesTable.updatedAt))
     .limit(limit)
     .offset(offset);
 
-  // Attach per-quiz question counts in a single batched query
-  const quizIds = quizzes.map((q) => q.id);
-  const questionCounts =
-    quizIds.length > 0
-      ? await db
-          .select({
-            quizId: questionsTable.quizId,
-            questionCount: count(questionsTable.id),
-          })
-          .from(questionsTable)
-          .where(
-            quizIds.length === 1
-              ? eq(questionsTable.quizId, quizIds[0])
-              : inArray(questionsTable.quizId, quizIds)
-          )
-          .groupBy(questionsTable.quizId)
-      : [];
-
-  const countMap = new Map(questionCounts.map((r) => [r.quizId, r.questionCount]));
-
-  const result = quizzes.map((quiz) => ({
-    ...quiz,
-    questionCount: countMap.get(quiz.id) ?? 0,
+  const result = quizzes.map(q => ({
+    ...q,
+    questionCount: Number(q.questionCount)
   }));
 
   return { quizzes: result };
@@ -89,37 +72,18 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
         createdAt: quizzesTable.createdAt,
         updatedAt: quizzesTable.updatedAt,
       },
+      questionCount: count(questionsTable.id),
     })
     .from(quizSessionsTable)
     .innerJoin(quizzesTable, eq(quizSessionsTable.quizId, quizzesTable.id))
+    .leftJoin(questionsTable, eq(quizzesTable.id, questionsTable.quizId))
     .where(eq(quizSessionsTable.studentId, userId))
+    .groupBy(quizSessionsTable.id, quizzesTable.id)
     .orderBy(desc(quizSessionsTable.startedAt))
     .limit(limit)
     .offset(offset);
 
-  // Attach per-quiz question counts in a single batched query
-  const quizIds = sessions.map((s) => s.quiz.id);
-  const uniqueQuizIds = Array.from(new Set(quizIds));
-
-  const questionCounts =
-    uniqueQuizIds.length > 0
-      ? await db
-          .select({
-            quizId: questionsTable.quizId,
-            questionCount: count(questionsTable.id),
-          })
-          .from(questionsTable)
-          .where(
-            uniqueQuizIds.length === 1
-              ? eq(questionsTable.quizId, uniqueQuizIds[0])
-              : inArray(questionsTable.quizId, uniqueQuizIds)
-          )
-          .groupBy(questionsTable.quizId)
-      : [];
-
-  const countMap = new Map(questionCounts.map((r) => [r.quizId, r.questionCount]));
-
-  const result = sessions.map((session) => ({
+  const result = sessions.map(({ questionCount, quiz, ...session }) => ({
     session: {
       id: session.id,
       status: session.status,
@@ -127,8 +91,8 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
       startedAt: session.startedAt,
       submittedAt: session.submittedAt,
     },
-    ...session.quiz,
-    questionCount: countMap.get(session.quiz.id) ?? 0,
+    ...quiz,
+    questionCount: Number(questionCount),
   }));
 
   return { quizzes: result };

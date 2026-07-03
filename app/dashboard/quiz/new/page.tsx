@@ -32,6 +32,8 @@ import {
   Type,
   ToggleLeft,
   ListOrdered,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -362,7 +364,8 @@ function SequenceEditor({
 
   const addItem = () => {
     if (items.length >= 20) return;
-    const newId = String(items.length + 1);
+    const maxId = items.reduce((max, item) => Math.max(max, parseInt(item.id) || 0), 0);
+    const newId = String(maxId + 1);
     const newItems = [...items, { id: newId, text: "" }];
     onChange({
       ...question,
@@ -381,37 +384,62 @@ function SequenceEditor({
     });
   };
 
+  const toggleSequence = (id: string) => {
+    let current = Array.isArray(question.correctAnswer) ? [...question.correctAnswer] : items.map(i => i.id);
+    if (current.includes(id)) {
+      current = current.filter((x) => x !== id);
+    } else {
+      current.push(id);
+    }
+    onChange({ ...question, correctAnswer: current });
+  };
+
+  const correctAnswer = Array.isArray(question.correctAnswer) ? question.correctAnswer : items.map(i => i.id);
+
   return (
     <div className="space-y-3">
       <Label className="text-sm font-medium text-foreground">
         Sequence Items{" "}
-        <span className="font-normal text-muted-foreground">(correct order: top → bottom)</span>
+        <span className="font-normal text-muted-foreground">(tap the circles to set the correct order)</span>
       </Label>
-      {items.map((item, idx) => (
-        <div
-          key={item.id}
-          className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
-        >
-          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" />
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted text-xs font-bold text-muted-foreground">
-            {idx + 1}
-          </div>
-          <Input
-            value={item.text}
-            onChange={(e) => updateItem(item.id, e.target.value)}
-            placeholder={`Item ${idx + 1}…`}
-            className="flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 text-sm placeholder:text-muted-foreground/50"
-          />
-          {items.length > 2 && (
+      {items.map((item) => {
+        const indexInOrder = correctAnswer.indexOf(item.id);
+        const isSelected = indexInOrder !== -1;
+        
+        return (
+          <div
+            key={item.id}
+            className={cn(
+              "flex items-center gap-3 rounded-lg border p-3 transition-colors",
+              isSelected ? "border-primary bg-primary/5" : "border-border bg-card"
+            )}
+          >
             <button
-              onClick={() => removeItem(item.id)}
-              className="shrink-0 text-muted-foreground/50 hover:text-destructive transition-colors"
+              onClick={() => toggleSequence(item.id)}
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all active:scale-95",
+                isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+              )}
             >
-              <Trash2 className="h-4 w-4" />
+              {isSelected ? indexInOrder + 1 : ""}
             </button>
-          )}
-        </div>
-      ))}
+            <Input
+              value={item.text}
+              onChange={(e) => updateItem(item.id, e.target.value)}
+              placeholder="Type sequence item…"
+              className="flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 text-sm placeholder:text-muted-foreground/50"
+            />
+            {items.length > 2 && (
+              <button
+                onClick={() => removeItem(item.id)}
+                className="shrink-0 text-muted-foreground/50 hover:text-destructive transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        );
+      })}
       {items.length < 20 && (
         <Button variant="outline" size="sm" className="gap-2" onClick={addItem}>
           <Plus className="h-3.5 w-3.5" />

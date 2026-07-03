@@ -1,4 +1,4 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/neon-http";
 
 import { env } from "./env";
 
@@ -8,9 +8,7 @@ const globalForDb = globalThis as {
 
 export const db =
   globalForDb.db ??
-  drizzle({
-    connection: env.DATABASE_URL,
-  });
+  drizzle(env.DATABASE_URL);
 
 if (env.NODE_ENV !== "production") {
   globalForDb.db = db;

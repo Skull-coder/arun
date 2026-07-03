@@ -38,7 +38,6 @@ export default function StudentQuizPage() {
   const [trackedQuestionId, setTrackedQuestionId] = useState<number | null>(null);
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVoted, setTotalVoted] = useState(0);
-  const [shuffledSequenceItems, setShuffledSequenceItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (!quiz) return;
