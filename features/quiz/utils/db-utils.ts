@@ -2,23 +2,13 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable, quizSessionsTable } from "@/features/database/schema";
 
-export async function generateJoinCode(): Promise<string> {
+export function generateJoinCode(): string {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // excludes 0/O, 1/I/L
-  for (let attempt = 0; attempt < 5; attempt++) {
-    let code = "";
-    for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    const [exists] = await db
-      .select({ id: quizzesTable.id })
-      .from(quizzesTable)
-      .where(eq(quizzesTable.joinCode, code))
-      .limit(1);
-    if (!exists) return code;
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
   }
-  // Extremely unlikely fallback after 5 retries
-  const suffix = Date.now().toString(36).slice(-4).toUpperCase();
-  return `${suffix}${Math.random().toString(36).slice(2, 4).toUpperCase()}`;
+  return code;
 }
 
 export async function fetchQuizWithQuestions(quizId: number) {
@@ -78,24 +68,28 @@ export async function requireEducatorOwnership(
   quizId: number,
   userId: string
 ): Promise<{ error: string; status: number } | { ok: true }> {
-  const [user] = await db
-    .select({ role: usersTable.role })
+  const rows = await db
+    .select({
+      role: usersTable.role,
+      creatorId: quizzesTable.creatorId,
+    })
     .from(usersTable)
+    .leftJoin(quizzesTable, eq(quizzesTable.id, quizId))
     .where(eq(usersTable.id, userId))
     .limit(1);
 
-  if (!user || user.role !== "educator") {
+  const row = rows[0];
+
+  if (!row || row.role !== "educator") {
     return { error: "Only educators can modify quizzes", status: 403 };
   }
 
-  const [quiz] = await db
-    .select({ creatorId: quizzesTable.creatorId })
-    .from(quizzesTable)
-    .where(eq(quizzesTable.id, quizId))
-    .limit(1);
+  // If the user exists but the quiz wasn't found (creatorId is null)
+  if (row.creatorId === null || row.creatorId === undefined) {
+    return { error: "Quiz not found", status: 404 };
+  }
 
-  if (!quiz) return { error: "Quiz not found", status: 404 };
-  if (quiz.creatorId !== userId) {
+  if (row.creatorId !== userId) {
     return { error: "You do not own this quiz", status: 403 };
   }
 
