@@ -49,11 +49,15 @@ export async function PATCH(
     return Response.json({ error: "Invalid quizId" }, { status: 400 });
   }
 
-  let body: unknown;
+  let body: any;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  
+  if (typeof body === 'object' && body !== null) {
+    body.quizId = quizId;
   }
 
   const parsed = updateQuizSchema.safeParse(body);

@@ -1,15 +1,21 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable } from "@/features/database/schema";
-import { requireEducatorOwnership } from "../../utils/db-utils";
 
 export async function deleteQuiz(quizId: number, userId: string) {
-  const authResult = await requireEducatorOwnership(quizId, userId);
-  if ("error" in authResult) {
-    return authResult;
-  }
+  const [deleted] = await db
+    .delete(quizzesTable)
+    .where(
+      and(
+        eq(quizzesTable.id, quizId),
+        eq(quizzesTable.creatorId, userId)
+      )
+    )
+    .returning({ id: quizzesTable.id });
 
-  await db.delete(quizzesTable).where(eq(quizzesTable.id, quizId));
+  if (!deleted) {
+    return { error: "Quiz not found or unauthorized", status: 403 };
+  }
 
   return { success: true };
 }

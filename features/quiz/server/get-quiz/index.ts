@@ -1,7 +1,6 @@
-import { eq, desc, count, inArray } from "drizzle-orm";
+import { eq, desc, count, inArray, sql, and } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { quizzesTable, questionsTable, usersTable, quizSessionsTable } from "@/features/database/schema";
-import { getQuizOrFail } from "../../utils/db-utils";
+import { quizzesTable, questionsTable, usersTable, quizSessionsTable, studentAnswersTable } from "@/features/database/schema";
 
 export async function getQuizzes(userId: string, limit: number, offset: number) {
   // First, fetch the user's role
@@ -32,6 +31,9 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
       creatorId: quizzesTable.creatorId,
       joinCode: quizzesTable.joinCode,
       isPublished: quizzesTable.isPublished,
+      status: quizzesTable.status,
+      totalMarks: quizzesTable.totalMarks,
+      totalQuestions: quizzesTable.totalQuestions,
       createdAt: quizzesTable.createdAt,
       updatedAt: quizzesTable.updatedAt,
     })
@@ -41,29 +43,9 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
     .limit(limit)
     .offset(offset);
 
-  // Attach per-quiz question counts in a single batched query
-  const quizIds = quizzes.map((q) => q.id);
-  const questionCounts =
-    quizIds.length > 0
-      ? await db
-          .select({
-            quizId: questionsTable.quizId,
-            questionCount: count(questionsTable.id),
-          })
-          .from(questionsTable)
-          .where(
-            quizIds.length === 1
-              ? eq(questionsTable.quizId, quizIds[0])
-              : inArray(questionsTable.quizId, quizIds)
-          )
-          .groupBy(questionsTable.quizId)
-      : [];
-
-  const countMap = new Map(questionCounts.map((r) => [r.quizId, r.questionCount]));
-
-  const result = quizzes.map((quiz) => ({
-    ...quiz,
-    questionCount: countMap.get(quiz.id) ?? 0,
+  const result = quizzes.map(q => ({
+    ...q,
+    questionCount: q.totalQuestions || 0
   }));
 
   return { quizzes: result };
@@ -86,6 +68,7 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
         isPublished: quizzesTable.isPublished,
         createdAt: quizzesTable.createdAt,
         updatedAt: quizzesTable.updatedAt,
+        totalQuestions: quizzesTable.totalQuestions,
       },
     })
     .from(quizSessionsTable)
@@ -95,29 +78,7 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
     .limit(limit)
     .offset(offset);
 
-  // Attach per-quiz question counts in a single batched query
-  const quizIds = sessions.map((s) => s.quiz.id);
-  const uniqueQuizIds = Array.from(new Set(quizIds));
-
-  const questionCounts =
-    uniqueQuizIds.length > 0
-      ? await db
-          .select({
-            quizId: questionsTable.quizId,
-            questionCount: count(questionsTable.id),
-          })
-          .from(questionsTable)
-          .where(
-            uniqueQuizIds.length === 1
-              ? eq(questionsTable.quizId, uniqueQuizIds[0])
-              : inArray(questionsTable.quizId, uniqueQuizIds)
-          )
-          .groupBy(questionsTable.quizId)
-      : [];
-
-  const countMap = new Map(questionCounts.map((r) => [r.quizId, r.questionCount]));
-
-  const result = sessions.map((session) => ({
+  const result = sessions.map(({ quiz, ...session }) => ({
     session: {
       id: session.id,
       status: session.status,
@@ -125,39 +86,113 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
       startedAt: session.startedAt,
       submittedAt: session.submittedAt,
     },
-    ...session.quiz,
-    questionCount: countMap.get(session.quiz.id) ?? 0,
+    ...quiz,
+    questionCount: quiz.totalQuestions || 0,
   }));
 
   return { quizzes: result };
 }
 
 export async function getQuiz(quizId: number, userId: string) {
-  const result = await getQuizOrFail(quizId, userId);
-  if ("error" in result) {
-    return result;
+  // 1. Fetch just the quiz row first
+  const [quizRow] = await db
+    .select()
+    .from(quizzesTable)
+    .where(eq(quizzesTable.id, quizId))
+    .limit(1);
+
+  if (!quizRow) {
+    return { error: "Quiz not found", status: 404 };
   }
 
-  const isOwner = result.quiz.creatorId === userId;
-  
-  let visibleQuestions = result.quiz.questions;
-  
-  if (!isOwner) {
-    // For students, only show the active question
-    const activeQuestionId = result.quiz.currentQuestionId;
-    if (activeQuestionId) {
-      visibleQuestions = visibleQuestions.filter(q => q.id === activeQuestionId);
-    } else {
-      visibleQuestions = [];
+  const isOwner = quizRow.creatorId === userId;
+
+  // 2. HOST LOGIC: Fetch everything (all questions with correct answers)
+  if (isOwner) {
+    const questions = await db
+      .select()
+      .from(questionsTable)
+      .where(eq(questionsTable.quizId, quizId))
+      .orderBy(questionsTable.order);
+
+    return { quiz: { ...quizRow, questions } };
+  }
+
+  // 3. STUDENT LOGIC: Security & Performance checks
+  if (!quizRow.isPublished) {
+    return { error: "Quiz not found", status: 404 };
+  }
+
+  // Check if student has joined
+  const [session] = await db
+    .select({ id: quizSessionsTable.id })
+    .from(quizSessionsTable)
+    .where(
+      and(
+        eq(quizSessionsTable.quizId, quizId),
+        eq(quizSessionsTable.studentId, userId)
+      )
+    )
+    .limit(1);
+
+  if (!session) {
+    return { error: "You must join this quiz first", status: 403 };
+  }
+
+  // If there's an active question, fetch ONLY that question
+  let questions: any[] = [];
+  let studentAnswer: any = null;
+
+  if (quizRow.currentQuestionId) {
+    const isShowingResults = quizRow.status === "showing_results";
+
+    const [activeQuestion] = await db
+      .select({
+        id: questionsTable.id,
+        quizId: questionsTable.quizId,
+        text: questionsTable.text,
+        durationSeconds: questionsTable.durationSeconds,
+        type: questionsTable.type,
+        config: questionsTable.config,
+        marks: questionsTable.marks,
+        order: questionsTable.order,
+        correctAnswer: questionsTable.correctAnswer,
+      })
+      .from(questionsTable)
+      .where(eq(questionsTable.id, quizRow.currentQuestionId))
+      .limit(1);
+
+    if (activeQuestion) {
+      if (!isShowingResults) {
+        delete (activeQuestion as any).correctAnswer;
+      }
+      questions = [activeQuestion];
+
+      // Fetch the student's submission for this specific question
+      const [submission] = await db
+        .select({
+           answer: studentAnswersTable.answer,
+           isCorrect: studentAnswersTable.isCorrect,
+           score: studentAnswersTable.score
+        })
+        .from(studentAnswersTable)
+        .where(
+           and(
+             eq(studentAnswersTable.sessionId, session.id),
+             eq(studentAnswersTable.questionId, activeQuestion.id)
+           )
+        )
+        .limit(1);
+        
+      if (submission) {
+         studentAnswer = submission;
+         if (!isShowingResults) {
+            delete (studentAnswer as any).isCorrect;
+            delete (studentAnswer as any).score;
+         }
+      }
     }
   }
 
-  const quiz = {
-    ...result.quiz,
-    questions: visibleQuestions.map((q) =>
-      isOwner ? q : { ...q, correctAnswer: undefined }
-    ),
-  };
-
-  return { quiz };
+  return { quiz: { ...quizRow, questions, studentAnswer } };
 }

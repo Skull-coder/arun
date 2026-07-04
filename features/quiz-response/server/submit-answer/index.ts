@@ -6,57 +6,40 @@ import { SubmitAnswerPayload } from "@/features/quiz-response/validations/submit
 export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
   const { quizId, questionId, type, answer } = data;
 
-  // 1. Verify student has an active session for this quiz
-  const [session] = await db
-    .select()
+  // 1. Fetch Session, Quiz, and Question in a SINGLE optimized DB roundtrip!
+  const [dataRow] = await db
+    .select({
+      session: quizSessionsTable,
+      quiz: quizzesTable,
+      question: questionsTable,
+    })
     .from(quizSessionsTable)
+    .innerJoin(quizzesTable, eq(quizzesTable.id, quizSessionsTable.quizId))
+    .innerJoin(questionsTable, eq(questionsTable.id, questionId))
     .where(
       and(
         eq(quizSessionsTable.quizId, quizId),
-        eq(quizSessionsTable.studentId, userId)
-      )
-    )
-    .limit(1);
-
-  if (!session) {
-    return { error: "You have not joined this quiz", status: 403 };
-  }
-
-  // 1.5 Fetch the quiz to check the live status
-  const [quiz] = await db
-    .select({ 
-      status: quizzesTable.status, 
-      currentQuestionStartedAt: quizzesTable.currentQuestionStartedAt 
-    })
-    .from(quizzesTable)
-    .where(eq(quizzesTable.id, quizId))
-    .limit(1);
-
-  if (!quiz || quiz.status !== "in_progress") {
-    return { error: "Quiz is not currently active", status: 400 };
-  }
-
-  // 2. Fetch the question to get correctAnswer, marks, config, and durationSeconds
-  const [question] = await db
-    .select()
-    .from(questionsTable)
-    .where(
-      and(
-        eq(questionsTable.id, questionId),
+        eq(quizSessionsTable.studentId, userId),
         eq(questionsTable.quizId, quizId)
       )
     )
     .limit(1);
 
-  if (!question) {
-    return { error: "Question not found", status: 404 };
+  if (!dataRow || !dataRow.session) {
+    return { error: "You have not joined this quiz", status: 403 };
+  }
+
+  const { session, quiz, question } = dataRow;
+
+  if (quiz.status !== "in_progress") {
+    return { error: "Quiz is not currently active", status: 400 };
   }
 
   if (question.type !== type) {
     return { error: "Question type mismatch", status: 400 };
   }
 
-  // 2.5 Enforce Strict Timer Deadline (if the host has started a timer)
+  // 2. Enforce Strict Timer Deadline (if the host has started a timer)
   if (quiz.currentQuestionStartedAt) {
     const elapsedSeconds = (Date.now() - quiz.currentQuestionStartedAt.getTime()) / 1000;
     // Add 3 seconds of grace period for network latency
@@ -69,20 +52,16 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
   let isCorrect = false;
 
   if (type === "single_choice") {
-    // Exact string match
     isCorrect = question.correctAnswer === answer;
   } else if (type === "multi_choice") {
-    // Array match (length and items must match)
     const correctArr = question.correctAnswer as string[];
     const ansArr = answer as string[];
     isCorrect = 
       correctArr.length === ansArr.length && 
       correctArr.every((val) => ansArr.includes(val));
   } else if (type === "true_false") {
-    // Exact boolean match
     isCorrect = question.correctAnswer === answer;
   } else if (type === "text") {
-    // Match against one or multiple acceptable text answers
     const config = question.config as { caseSensitive?: boolean };
     const correctAnswers = Array.isArray(question.correctAnswer)
       ? (question.correctAnswer as string[])
@@ -97,7 +76,6 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
       isCorrect = correctAnswers.some((ans) => ans.toLowerCase() === lowerSubmitted);
     }
   } else if (type === "sequence") {
-    // Array exact order match
     const correctArr = question.correctAnswer as string[];
     const ansArr = answer as string[];
     isCorrect = 
@@ -110,7 +88,7 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
 
   // 4. Save or update the answer in the database
   const [existingAnswer] = await db
-    .select({ id: studentAnswersTable.id })
+    .select({ id: studentAnswersTable.id, score: studentAnswersTable.score })
     .from(studentAnswersTable)
     .where(
       and(
@@ -120,14 +98,14 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     )
     .limit(1);
 
+  const oldScore = existingAnswer?.score || 0;
+
   if (existingAnswer) {
-    // Upsert (if they are changing their answer before time runs out)
     await db
       .update(studentAnswersTable)
       .set({ answer, isCorrect, score })
       .where(eq(studentAnswersTable.id, existingAnswer.id));
   } else {
-    // Insert new answer
     await db.insert(studentAnswersTable).values({
       sessionId: session.id,
       questionId,
@@ -137,25 +115,21 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     });
   }
 
-  // 5. Recalculate and update the session's total score
-  // We sum up all scores for this session to ensure it's always accurate, 
-  // even if the user changed an answer from correct to incorrect.
-  const [sumResult] = await db
-    .select({ total: sql<number>`COALESCE(SUM(${studentAnswersTable.score}), 0)` })
-    .from(studentAnswersTable)
-    .where(eq(studentAnswersTable.sessionId, session.id));
-
-  await db
-    .update(quizSessionsTable)
-    .set({ totalScore: Number(sumResult.total) })
-    .where(eq(quizSessionsTable.id, session.id));
+  // 5. Update total score differentially (Saves a heavy SUM query)
+  const scoreDifference = score - oldScore;
+  if (scoreDifference !== 0) {
+    await db
+      .update(quizSessionsTable)
+      .set({ totalScore: sql`${quizSessionsTable.totalScore} + ${scoreDifference}` })
+      .where(eq(quizSessionsTable.id, session.id));
+  }
 
   // 📢 BROADCAST TO WEBSOCKETS!
-  // Tell the specific host room that someone just answered, so they can update the UI counter!
+  // Tell everyone (host and students) that someone just answered, so they can update the live poll!
   if ((global as any).io) {
-    (global as any).io.to(`quiz-${quizId}-host`).emit("student_answered", { 
-      studentId: userId,
-      questionId: questionId
+    (global as any).io.to(`quiz-${quizId}`).emit("answer_submitted", { 
+      questionId: questionId,
+      answer: answer
     });
   }
 

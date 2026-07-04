@@ -8,9 +8,7 @@ const globalForDb = globalThis as {
 
 export const db =
   globalForDb.db ??
-  drizzle({
-    connection: env.DATABASE_URL,
-  });
+  drizzle(env.DATABASE_URL || process.env.DATABASE_URL!);
 
 if (env.NODE_ENV !== "production") {
   globalForDb.db = db;

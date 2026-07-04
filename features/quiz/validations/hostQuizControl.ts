@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const hostQuizControlSchema = z.object({
-  action: z.enum(["start", "next", "end", "add_time"]),
+  action: z.enum(["open", "start", "next", "end", "add_time", "show_results"]),
   timeToAddSeconds: z.number().int().positive().optional().default(15),
 });
 
