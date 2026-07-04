@@ -34,21 +34,19 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
       isPublished: quizzesTable.isPublished,
       status: quizzesTable.status,
       totalMarks: quizzesTable.totalMarks,
+      totalQuestions: quizzesTable.totalQuestions,
       createdAt: quizzesTable.createdAt,
       updatedAt: quizzesTable.updatedAt,
-      questionCount: count(questionsTable.id),
     })
     .from(quizzesTable)
-    .leftJoin(questionsTable, eq(quizzesTable.id, questionsTable.quizId))
     .where(eq(quizzesTable.creatorId, userId))
-    .groupBy(quizzesTable.id)
     .orderBy(desc(quizzesTable.updatedAt))
     .limit(limit)
     .offset(offset);
 
   const result = quizzes.map(q => ({
     ...q,
-    questionCount: Number(q.questionCount)
+    questionCount: q.totalQuestions || 0
   }));
 
   return { quizzes: result };
@@ -71,19 +69,17 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
         isPublished: quizzesTable.isPublished,
         createdAt: quizzesTable.createdAt,
         updatedAt: quizzesTable.updatedAt,
+        totalQuestions: quizzesTable.totalQuestions,
       },
-      questionCount: count(questionsTable.id),
     })
     .from(quizSessionsTable)
     .innerJoin(quizzesTable, eq(quizSessionsTable.quizId, quizzesTable.id))
-    .leftJoin(questionsTable, eq(quizzesTable.id, questionsTable.quizId))
     .where(eq(quizSessionsTable.studentId, userId))
-    .groupBy(quizSessionsTable.id, quizzesTable.id)
     .orderBy(desc(quizSessionsTable.startedAt))
     .limit(limit)
     .offset(offset);
 
-  const result = sessions.map(({ questionCount, quiz, ...session }) => ({
+  const result = sessions.map(({ quiz, ...session }) => ({
     session: {
       id: session.id,
       status: session.status,
@@ -92,7 +88,7 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
       submittedAt: session.submittedAt,
     },
     ...quiz,
-    questionCount: Number(questionCount),
+    questionCount: quiz.totalQuestions || 0,
   }));
 
   return { quizzes: result };

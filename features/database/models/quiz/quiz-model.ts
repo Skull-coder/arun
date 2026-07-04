@@ -27,6 +27,7 @@ export const quizzesTable = pgTable("quizzes", {
   title: varchar({ length: 255 }).notNull(),
   description: text(),
   totalMarks: integer(), // Total marks
+  totalQuestions: integer(), // Total number of questions
   creatorId: varchar({ length: 255 })
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),

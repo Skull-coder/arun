@@ -34,6 +34,7 @@ export async function createQuiz(userId: string, data: CreateQuizInput) {
             joinCode,
             isPublished: false,
             totalMarks,
+            totalQuestions: questions.length,
           })
           .returning();
 
