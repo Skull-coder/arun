@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   if (!userId) {
     redirect("/sign-in");
   }
-
+  console.log("userId:",userId)
   // Fetch the user from the database to check their onboarding role status
   const [user] = await db
     .select()

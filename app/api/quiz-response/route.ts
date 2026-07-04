@@ -39,9 +39,10 @@ export async function POST(request: Request) {
   }
 
   // 3. Return a successful response. 
-  // We can return `isCorrect` so the frontend can display immediate visual feedback.
+  // We explicitly DO NOT return `isCorrect` here to prevent cheating!
+  // The frontend will receive the results via websockets when the question ends.
   return NextResponse.json(
-    { success: true, isCorrect: result.isCorrect },
+    { success: true, message: "Answer recorded securely" },
     { status: result.status }
   );
 }

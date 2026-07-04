@@ -138,6 +138,7 @@ export default function HostQuizPage() {
   const isWaiting = quiz.status === "waiting";
   const isInProgress = quiz.status === "in_progress";
   const isCompleted = quiz.status === "completed";
+  const isShowingResults = quiz.status === "showing_results";
 
   const currentQuestion = quiz.questions?.find((q: any) => q.id === quiz.currentQuestionId);
   const currentQuestionIndex = quiz.questions?.findIndex((q: any) => q.id === quiz.currentQuestionId) ?? -1;
@@ -405,7 +406,7 @@ export default function HostQuizPage() {
         )}
 
         {/* ACTIVE QUESTION PANEL (Full Screen) */}
-        {isInProgress && currentQuestion && (
+        {(isInProgress || isShowingResults) && currentQuestion && (
           <div className="flex-1 flex flex-col p-8 overflow-y-auto">
             <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
               
@@ -456,30 +457,42 @@ export default function HostQuizPage() {
         )}
       </main>
 
-      {/* ── BOTTOM HOST CONTROLS (Only when in progress) ── */}
-      {isInProgress && (
+      {/* ── BOTTOM HOST CONTROLS (Only when in progress or showing results) ── */}
+      {(isInProgress || isShowingResults) && (
         <footer className="shrink-0 border-t border-border bg-card p-4 z-10 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)]">
           <div className="mx-auto flex max-w-5xl items-center justify-center gap-4">
             <Button 
               size="lg" 
               variant="outline" 
               className="h-14 px-8 font-bold gap-2 text-muted-foreground hover:text-foreground"
-              disabled={isControlling}
+              disabled={isControlling || isShowingResults}
               onClick={() => handleAction("add_time")}
             >
               <Clock className="h-5 w-5" />
               +15 Seconds
             </Button>
 
-            <Button 
-              size="lg" 
-              className="h-14 px-12 text-lg font-bold shadow-lg gap-2"
-              disabled={isControlling}
-              onClick={() => handleAction("next")}
-            >
-              <SkipForward className="h-5 w-5" />
-              {currentQuestionIndex + 1 === quiz.questions?.length ? "Finish Quiz" : "Next Question"}
-            </Button>
+            {isInProgress ? (
+              <Button 
+                size="lg" 
+                className="h-14 px-12 text-lg font-bold shadow-lg gap-2"
+                disabled={isControlling}
+                onClick={() => handleAction("show_results")}
+              >
+                <SkipForward className="h-5 w-5" />
+                Show Results
+              </Button>
+            ) : (
+              <Button 
+                size="lg" 
+                className="h-14 px-12 text-lg font-bold shadow-lg gap-2"
+                disabled={isControlling}
+                onClick={() => handleAction("next")}
+              >
+                <SkipForward className="h-5 w-5" />
+                {currentQuestionIndex + 1 === quiz.questions?.length ? "Finish Quiz" : "Next Question"}
+              </Button>
+            )}
 
             <Button 
               size="lg" 

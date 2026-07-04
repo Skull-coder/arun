@@ -4,6 +4,35 @@ import { quizzesTable, questionsTable } from "@/features/database/schema";
 import { requireEducatorOwnership } from "../../utils/db-utils";
 import { HostQuizControlInput } from "@/features/quiz/validations/hostQuizControl";
 
+async function broadcastState(quizId: number, status: string, questionId: number | null, startedAt: Date | null, studentAnswerPayload?: any) {
+  if (!(global as any).io) return;
+
+  let questionData = null;
+  if (questionId) {
+    const [q] = await db.select().from(questionsTable).where(eq(questionsTable.id, questionId)).limit(1);
+    if (q) {
+      // Strip correct answer unless showing_results
+      if (status !== "showing_results") {
+        const { correctAnswer, ...safeQuestion } = q;
+        questionData = safeQuestion;
+      } else {
+        questionData = q; // Include correct answer during reveal
+      }
+    }
+  }
+
+  const payload = {
+    status,
+    currentQuestionId: questionId,
+    currentQuestionStartedAt: startedAt,
+    questions: questionData ? [questionData] : [],
+    // For showing_results, we broadcast the reveal trigger, but individual students might still need to fetch their specific grade.
+    // However, they can just use the correctAnswer to grade themselves locally for instant feedback!
+  };
+
+  (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated", payload);
+}
+
 export async function hostQuizControl(quizId: number, userId: string, data: HostQuizControlInput) {
   const authResult = await requireEducatorOwnership(quizId, userId);
   if ("error" in authResult) {
@@ -26,10 +55,7 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
         .set({ status: "waiting", isPublished: true })
         .where(eq(quizzesTable.id, quizId));
 
-      // 📢 BROADCAST TO WEBSOCKETS!
-      if ((global as any).io) {
-        (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
-      }
+      await broadcastState(quizId, "waiting", null, null);
     }
     return { success: true, status: 200 };
   }
@@ -43,57 +69,57 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
       .orderBy(asc(questionsTable.order))
       .limit(1);
 
+    const startedAt = new Date();
     await db
       .update(quizzesTable)
       .set({ 
         status: "in_progress",
         currentQuestionId: firstQuestion?.id ?? null,
-        currentQuestionStartedAt: new Date()
+        currentQuestionStartedAt: startedAt
       })
       .where(eq(quizzesTable.id, quizId));
       
-    // 📢 BROADCAST TO WEBSOCKETS!
-    if ((global as any).io) {
-      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
-    }
+    await broadcastState(quizId, "in_progress", firstQuestion?.id ?? null, startedAt);
+    return { success: true, status: 200 };
+  }
 
+  if (action === "show_results") {
+    const [quiz] = await db.select({ currentQuestionId: quizzesTable.currentQuestionId, currentQuestionStartedAt: quizzesTable.currentQuestionStartedAt }).from(quizzesTable).where(eq(quizzesTable.id, quizId)).limit(1);
+    
+    await db
+      .update(quizzesTable)
+      .set({ status: "showing_results" })
+      .where(eq(quizzesTable.id, quizId));
+      
+    await broadcastState(quizId, "showing_results", quiz?.currentQuestionId ?? null, quiz?.currentQuestionStartedAt ?? null);
     return { success: true, status: 200 };
   }
 
   if (action === "next") {
-    // To find the next question, we need the current one
-    const [quiz] = await db
-      .select({ currentQuestionId: quizzesTable.currentQuestionId })
-      .from(quizzesTable)
-      .where(eq(quizzesTable.id, quizId))
-      .limit(1);
+    // Run both reads concurrently to save database roundtrips!
+    const [[quiz], questionsList] = await Promise.all([
+      db
+        .select({ currentQuestionId: quizzesTable.currentQuestionId })
+        .from(quizzesTable)
+        .where(eq(quizzesTable.id, quizId))
+        .limit(1),
+      db
+        .select({ id: questionsTable.id })
+        .from(questionsTable)
+        .where(eq(questionsTable.quizId, quizId))
+        .orderBy(asc(questionsTable.order)),
+    ]);
 
     if (!quiz || !quiz.currentQuestionId) {
       return { error: "Quiz is not currently active", status: 400 };
     }
 
-    const [currentQuestion] = await db
-      .select({ order: questionsTable.order })
-      .from(questionsTable)
-      .where(eq(questionsTable.id, quiz.currentQuestionId))
-      .limit(1);
-
+    // Find current index and get the next one in memory (0ms)
+    const currentIndex = questionsList.findIndex(q => q.id === quiz.currentQuestionId);
     let nextQuestionId = null;
 
-    if (currentQuestion) {
-      const [nextQuestion] = await db
-        .select({ id: questionsTable.id })
-        .from(questionsTable)
-        .where(
-          and(
-            eq(questionsTable.quizId, quizId),
-            gt(questionsTable.order, currentQuestion.order)
-          )
-        )
-        .orderBy(asc(questionsTable.order))
-        .limit(1);
-        
-      nextQuestionId = nextQuestion?.id ?? null;
+    if (currentIndex !== -1 && currentIndex + 1 < questionsList.length) {
+      nextQuestionId = questionsList[currentIndex + 1].id;
     }
 
     if (!nextQuestionId) {
@@ -102,17 +128,17 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
         .update(quizzesTable)
         .set({ status: "completed", currentQuestionId: null, currentQuestionStartedAt: null })
         .where(eq(quizzesTable.id, quizId));
+        
+      await broadcastState(quizId, "completed", null, null);
     } else {
-      // Move to the next question
+      // Move to the next question and reset status back to in_progress
+      const startedAt = new Date();
       await db
         .update(quizzesTable)
-        .set({ currentQuestionId: nextQuestionId, currentQuestionStartedAt: new Date() })
+        .set({ status: "in_progress", currentQuestionId: nextQuestionId, currentQuestionStartedAt: startedAt })
         .where(eq(quizzesTable.id, quizId));
-    }
-    
-    // 📢 BROADCAST TO WEBSOCKETS!
-    if ((global as any).io) {
-      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+        
+      await broadcastState(quizId, "in_progress", nextQuestionId, startedAt);
     }
 
     return { success: true, status: 200 };
@@ -124,29 +150,26 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
       .set({ status: "completed", currentQuestionId: null, currentQuestionStartedAt: null })
       .where(eq(quizzesTable.id, quizId));
       
-    // 📢 BROADCAST TO WEBSOCKETS!
-    if ((global as any).io) {
-      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
-    }
-
+    await broadcastState(quizId, "completed", null, null);
     return { success: true, status: 200 };
   }
 
   if (action === "add_time") {
     const timeToAdd = data.timeToAddSeconds ?? 15;
     
-    // By shifting the start time forward, we effectively decrease the "elapsed time"
-    // calculated during submitAnswer, giving the students more time!
-    await db
-      .update(quizzesTable)
-      .set({ 
-        currentQuestionStartedAt: sql`${quizzesTable.currentQuestionStartedAt} + interval '${sql.raw(timeToAdd.toString())} seconds'` 
-      })
-      .where(eq(quizzesTable.id, quizId));
-      
-    // 📢 BROADCAST TO WEBSOCKETS!
-    if ((global as any).io) {
-      (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated");
+    // Fetch quiz to get current time and id to broadcast correctly
+    const [quiz] = await db.select({ currentQuestionId: quizzesTable.currentQuestionId, currentQuestionStartedAt: quizzesTable.currentQuestionStartedAt }).from(quizzesTable).where(eq(quizzesTable.id, quizId)).limit(1);
+
+    if (quiz?.currentQuestionStartedAt) {
+      const newStartedAt = new Date(quiz.currentQuestionStartedAt.getTime() + (timeToAdd * 1000));
+      await db
+        .update(quizzesTable)
+        .set({ 
+          currentQuestionStartedAt: newStartedAt
+        })
+        .where(eq(quizzesTable.id, quizId));
+        
+      await broadcastState(quizId, "in_progress", quiz.currentQuestionId, newStartedAt);
     }
 
     return { success: true, status: 200 };

@@ -51,8 +51,26 @@ export default function StudentQuizPage() {
       newSocket.emit("join_quiz", { quizId: quiz.id });
     });
 
-    newSocket.on("quiz_state_updated", () => {
-      queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
+    newSocket.on("quiz_state_updated", (payload?: any) => {
+      if (payload) {
+        // Instantly patch the query cache using the WebSocket payload to achieve 0ms load times!
+        queryClient.setQueryData(["quiz", params.id], (oldData: any) => {
+          if (!oldData || !oldData.quiz) return oldData;
+          return {
+            ...oldData,
+            quiz: {
+              ...oldData.quiz,
+              status: payload.status,
+              currentQuestionId: payload.currentQuestionId,
+              currentQuestionStartedAt: payload.currentQuestionStartedAt,
+              questions: payload.questions?.length ? payload.questions : oldData.quiz.questions,
+            }
+          };
+        });
+      } else {
+        // Fallback for legacy events
+        queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
+      }
     });
 
     newSocket.on("live_count_updated", (data: any) => {
@@ -118,6 +136,22 @@ export default function StudentQuizPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Sync state from server if available (e.g. they refresh or results are shown)
+  useEffect(() => {
+    if (quiz?.studentAnswer) {
+      if (quiz.studentAnswer.answer !== undefined && !selectedAnswer) {
+        setSelectedAnswer(quiz.studentAnswer.answer);
+      }
+      if (quiz.studentAnswer.isCorrect === true) {
+        setSubmittedStatus("correct");
+      } else if (quiz.studentAnswer.isCorrect === false) {
+        setSubmittedStatus("incorrect");
+      } else if (!submittedStatus) {
+        setSubmittedStatus("submitted");
+      }
+    }
+  }, [quiz?.studentAnswer]);
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -141,6 +175,7 @@ export default function StudentQuizPage() {
   const isWaiting = quiz.status === "waiting";
   const isInProgress = quiz.status === "in_progress";
   const isCompleted = quiz.status === "completed";
+  const isShowingResults = quiz.status === "showing_results";
 
   const currentQuestion = quiz.questions?.length > 0 ? quiz.questions[0] : null;
 
@@ -220,6 +255,9 @@ export default function StudentQuizPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isSelected = selectedAnswer === opt.id;
+            const isCorrectAnswer = isShowingResults && currentQuestion.correctAnswer === opt.id;
+            const isWrongSelection = isShowingResults && isSelected && !isCorrectAnswer;
+            
             const optionVotes = voteCounts[String(opt.id)] || 0;
             const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
             
@@ -232,11 +270,15 @@ export default function StudentQuizPage() {
                 }}
                 className={cn(
                   "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
-                  isSelected 
+                  isCorrectAnswer
+                    ? "border-green-500 bg-green-500/10"
+                    : isWrongSelection
+                    ? "border-destructive bg-destructive/10"
+                    : isSelected 
                     ? "border-primary bg-primary/10" 
                     : "border-border bg-card hover:border-primary/40",
-                  disabled && !isSelected && "opacity-50 cursor-not-allowed",
-                  disabled && isSelected && "opacity-100 cursor-not-allowed"
+                  disabled && !isSelected && !isCorrectAnswer && "opacity-50 cursor-not-allowed",
+                  (isSelected || isCorrectAnswer) && "opacity-100 cursor-not-allowed"
                 )}
               >
                 <div 
@@ -246,11 +288,11 @@ export default function StudentQuizPage() {
                 <div className="flex items-center gap-4 relative z-10">
                   <div className={cn(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
-                    isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    isCorrectAnswer ? "bg-green-500 text-white" : isWrongSelection ? "bg-destructive text-white" : isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   )}>
                     {labels[i]}
                   </div>
-                  <span className="text-xl font-medium text-foreground">{opt.text}</span>
+                  <span className={cn("text-xl font-medium", (isCorrectAnswer || isWrongSelection) ? "text-foreground" : "text-foreground")}>{opt.text}</span>
                 </div>
                 {disabled && (
                   <span className="font-bold text-lg text-muted-foreground relative z-10">{percentage}%</span>
@@ -269,6 +311,9 @@ export default function StudentQuizPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isSelected = Array.isArray(selectedAnswer) && selectedAnswer.includes(opt.id);
+            const isCorrectAnswer = isShowingResults && Array.isArray(currentQuestion.correctAnswer) && currentQuestion.correctAnswer.includes(opt.id);
+            const isWrongSelection = isShowingResults && isSelected && !isCorrectAnswer;
+
             const optionVotes = voteCounts[String(opt.id)] || 0;
             const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
 
@@ -286,11 +331,15 @@ export default function StudentQuizPage() {
                 }}
                 className={cn(
                   "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
-                  isSelected 
+                  isCorrectAnswer
+                    ? "border-green-500 bg-green-500/10"
+                    : isWrongSelection
+                    ? "border-destructive bg-destructive/10"
+                    : isSelected 
                     ? "border-primary bg-primary/10" 
                     : "border-border bg-card hover:border-primary/40",
-                  disabled && !isSelected && "opacity-50 cursor-not-allowed",
-                  disabled && isSelected && "opacity-100 cursor-not-allowed"
+                  disabled && !isSelected && !isCorrectAnswer && "opacity-50 cursor-not-allowed",
+                  (isSelected || isCorrectAnswer) && "opacity-100 cursor-not-allowed"
                 )}
               >
                 <div 
@@ -300,11 +349,11 @@ export default function StudentQuizPage() {
                 <div className="flex items-center gap-4 relative z-10">
                   <div className={cn(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
-                    isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    isCorrectAnswer ? "bg-green-500 text-white" : isWrongSelection ? "bg-destructive text-white" : isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   )}>
                     {labels[i]}
                   </div>
-                  <span className="text-xl font-medium text-foreground">{opt.text}</span>
+                  <span className={cn("text-xl font-medium", (isCorrectAnswer || isWrongSelection) ? "text-foreground" : "text-foreground")}>{opt.text}</span>
                 </div>
                 {disabled && (
                   <span className="font-bold text-lg text-muted-foreground relative z-10">{percentage}%</span>
@@ -322,6 +371,11 @@ export default function StudentQuizPage() {
       const truePct = totalVoted > 0 ? Math.round((trueVotes / totalVoted) * 100) : 0;
       const falsePct = totalVoted > 0 ? Math.round((falseVotes / totalVoted) * 100) : 0;
 
+      const isTrueCorrect = isShowingResults && currentQuestion.correctAnswer === true;
+      const isFalseCorrect = isShowingResults && currentQuestion.correctAnswer === false;
+      const isTrueWrongSelection = isShowingResults && selectedAnswer === true && !isTrueCorrect;
+      const isFalseWrongSelection = isShowingResults && selectedAnswer === false && !isFalseCorrect;
+
       return (
         <div className="flex flex-col sm:flex-row gap-6 mt-8 w-full max-w-2xl mx-auto">
           <button
@@ -329,15 +383,15 @@ export default function StudentQuizPage() {
             onClick={() => setSelectedAnswer(true)}
             className={cn(
               "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
-              selectedAnswer === true ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
-              disabled && selectedAnswer !== true && "opacity-50 cursor-not-allowed"
+              isTrueCorrect ? "border-green-500 bg-green-500/10 text-green-700" : isTrueWrongSelection ? "border-destructive bg-destructive/10 text-destructive" : selectedAnswer === true ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
+              disabled && selectedAnswer !== true && !isTrueCorrect && "opacity-50 cursor-not-allowed"
             )}
           >
             <div 
               className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
               style={{ height: `${truePct}%` }}
             />
-            <span className={cn("text-3xl font-bold z-10", selectedAnswer === true ? "text-primary" : "text-foreground")}>True</span>
+            <span className={cn("text-3xl font-bold z-10", (isTrueCorrect || isTrueWrongSelection) ? "" : selectedAnswer === true ? "text-primary" : "text-foreground")}>True</span>
             {disabled && <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>}
           </button>
           <button
@@ -345,15 +399,15 @@ export default function StudentQuizPage() {
             onClick={() => setSelectedAnswer(false)}
             className={cn(
               "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
-              selectedAnswer === false ? "border-destructive bg-destructive/5" : "border-border bg-card hover:border-destructive/40",
-              disabled && selectedAnswer !== false && "opacity-50 cursor-not-allowed"
+              isFalseCorrect ? "border-green-500 bg-green-500/10 text-green-700" : isFalseWrongSelection ? "border-destructive bg-destructive/10 text-destructive" : selectedAnswer === false ? "border-destructive bg-destructive/5" : "border-border bg-card hover:border-destructive/40",
+              disabled && selectedAnswer !== false && !isFalseCorrect && "opacity-50 cursor-not-allowed"
             )}
           >
             <div 
               className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
               style={{ height: `${falsePct}%` }}
             />
-            <span className={cn("text-3xl font-bold z-10", selectedAnswer === false ? "text-destructive" : "text-foreground")}>False</span>
+            <span className={cn("text-3xl font-bold z-10", (isFalseCorrect || isFalseWrongSelection) ? "" : selectedAnswer === false ? "text-destructive" : "text-foreground")}>False</span>
             {disabled && <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>}
           </button>
         </div>
@@ -362,33 +416,54 @@ export default function StudentQuizPage() {
 
     if (currentQuestion.type === "sequence") {
       const items = currentQuestion.config?.items ?? [];
+      
       return (
         <div className="flex flex-col gap-3 mt-8 w-full max-w-2xl mx-auto">
           <p className="text-sm text-muted-foreground mb-2">Tap the items in the correct order:</p>
           {items.map((item: any) => {
             const indexInOrder = sequenceOrder.indexOf(item.id);
             const isSelected = indexInOrder !== -1;
+            
+            const isCorrectAnswer = isShowingResults && currentQuestion.correctAnswer;
+            const correctIndex = isCorrectAnswer ? currentQuestion.correctAnswer.indexOf(item.id) : -1;
+            
+            const isCorrectPosition = isShowingResults && isSelected && indexInOrder === correctIndex;
+            const isWrongPosition = isShowingResults && isSelected && !isCorrectPosition;
+
             return (
               <button
                 key={item.id}
                 disabled={disabled}
                 onClick={() => handleSequenceClick(item.id)}
                 className={cn(
-                  "flex items-center gap-4 p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
-                  isSelected 
+                  "flex items-center gap-4 p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm relative",
+                  isCorrectPosition
+                    ? "border-green-500 bg-green-500/10"
+                    : isWrongPosition
+                    ? "border-destructive bg-destructive/10"
+                    : isSelected 
                     ? "border-primary bg-primary/10" 
                     : "border-border bg-card hover:border-primary/40",
-                  disabled && !isSelected && "opacity-50 cursor-not-allowed",
-                  disabled && isSelected && "opacity-100 cursor-not-allowed"
+                  disabled && !isSelected && !isShowingResults && "opacity-50 cursor-not-allowed",
+                  (isSelected || isShowingResults) && "opacity-100 cursor-not-allowed"
                 )}
               >
                 <div className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
-                  isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold z-10",
+                  isCorrectPosition ? "bg-green-500 text-white" : isWrongPosition ? "bg-destructive text-white" : isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}>
                   {isSelected ? indexInOrder + 1 : ""}
                 </div>
-                <span className="text-lg font-medium text-foreground">{item.text}</span>
+                <span className="text-lg font-medium text-foreground z-10">{item.text}</span>
+                
+                {isShowingResults && (
+                  <div className="absolute right-4 text-sm font-bold text-muted-foreground flex items-center gap-2">
+                    <span>Correct Position:</span>
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500 text-white">
+                      {correctIndex + 1}
+                    </div>
+                  </div>
+                )}
               </button>
             );
           })}
@@ -397,6 +472,9 @@ export default function StudentQuizPage() {
     }
 
     if (currentQuestion.type === "text") {
+      const isCorrectText = isShowingResults && submittedStatus === "correct";
+      const isWrongText = isShowingResults && submittedStatus === "incorrect";
+
       return (
         <div className="mt-8 text-center flex flex-col items-center gap-6 w-full max-w-md mx-auto">
           <Input 
@@ -404,9 +482,17 @@ export default function StudentQuizPage() {
             onChange={(e) => setSelectedAnswer(e.target.value)}
             disabled={disabled}
             placeholder="Type your answer here..."
-            className="h-16 text-center text-xl shadow-sm border-2 focus-visible:ring-primary/20"
+            className={cn(
+              "h-16 text-center text-xl shadow-sm border-2 focus-visible:ring-primary/20",
+              isCorrectText ? "border-green-500 bg-green-500/10 text-green-700 font-bold" : isWrongText ? "border-destructive bg-destructive/10 text-destructive font-bold" : ""
+            )}
             autoFocus
           />
+          {isShowingResults && (
+            <div className="text-lg text-muted-foreground mt-2">
+              Correct Answer: <span className="font-bold text-green-600">{currentQuestion.correctAnswer}</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -456,7 +542,7 @@ export default function StudentQuizPage() {
         )}
 
         {/* ACTIVE QUESTION PANEL */}
-        {isInProgress && currentQuestion && (
+        {(isInProgress || isShowingResults) && currentQuestion && (
           <div className="flex-1 flex flex-col p-6 md:p-12 overflow-y-auto">
             <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
               
@@ -464,14 +550,16 @@ export default function StudentQuizPage() {
                 {/* TIMER BUBBLE */}
                 <div className={cn(
                   "flex items-center gap-2 px-5 py-2 rounded-full border-2 font-mono text-2xl font-bold shadow-sm transition-colors",
-                  timeRemaining <= 5 
+                  isShowingResults 
+                    ? "border-muted bg-muted text-muted-foreground" 
+                    : timeRemaining <= 5 
                     ? "border-destructive/50 bg-destructive/10 text-destructive animate-pulse" 
                     : timeRemaining <= 15
                     ? "border-orange-500/50 bg-orange-500/10 text-orange-600"
                     : "border-primary/30 bg-primary/5 text-primary"
                 )}>
                   <Clock className="h-6 w-6" />
-                  {timeRemaining}s
+                  {isShowingResults ? "Time's Up!" : `${timeRemaining}s`}
                 </div>
               </div>
 
@@ -503,27 +591,63 @@ export default function StudentQuizPage() {
         )}
 
         {/* ── FEEDBACK OVERLAY (Correct/Incorrect/Time Up) ── */}
-        {isInProgress && currentQuestion && (submittedStatus || isTimeUp) && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-in slide-in-from-bottom-10 fade-in duration-300">
-            <div className={cn(
-              "px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 border-2 font-bold text-xl",
-              (submittedStatus === "correct" && isTimeUp) && "bg-green-100 border-green-500 text-green-700",
-              (submittedStatus === "incorrect" && isTimeUp) && "bg-destructive/10 border-destructive text-destructive",
-              (submittedStatus && !isTimeUp) && "bg-primary/10 border-primary text-primary",
-              (!submittedStatus && isTimeUp) && "bg-muted border-border text-muted-foreground"
-            )}>
-              {(submittedStatus === "correct" && isTimeUp) && <CheckCircle2 className="h-8 w-8" />}
-              {(submittedStatus === "incorrect" && isTimeUp) && <XCircle className="h-8 w-8" />}
-              {(submittedStatus && !isTimeUp) && <CheckCircle2 className="h-8 w-8" />}
-              {(!submittedStatus && isTimeUp) && <Clock className="h-8 w-8" />}
+        {(isInProgress || isShowingResults) && currentQuestion && (submittedStatus || isTimeUp || isShowingResults) && (() => {
+          let displayStatus = submittedStatus;
+          if (isShowingResults && currentQuestion.correctAnswer !== undefined) {
+            if (!submittedStatus) {
+              displayStatus = null;
+            } else {
+              let isCorrect = false;
+              const { type, correctAnswer } = currentQuestion;
               
-              {(submittedStatus === "correct" && isTimeUp) && "Correct!"}
-              {(submittedStatus === "incorrect" && isTimeUp) && "Incorrect!"}
-              {(submittedStatus && !isTimeUp) && "Answer recorded! Waiting for time..."}
-              {(!submittedStatus && isTimeUp) && "Time's up!"}
+              if (type === "single_choice" || type === "true_false") {
+                isCorrect = correctAnswer === selectedAnswer;
+              } else if (type === "multi_choice") {
+                const correctArr = correctAnswer as string[];
+                const ansArr = (selectedAnswer as string[]) || [];
+                isCorrect = correctArr.length === ansArr.length && correctArr.every(v => ansArr.includes(v));
+              } else if (type === "sequence") {
+                const correctArr = correctAnswer as string[];
+                isCorrect = correctArr.length === sequenceOrder.length && correctArr.every((v, i) => v === sequenceOrder[i]);
+              } else if (type === "text") {
+                const correctArr = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
+                const submittedText = (selectedAnswer as string) || "";
+                const config = currentQuestion.config as { caseSensitive?: boolean };
+                if (config?.caseSensitive) {
+                  isCorrect = correctArr.includes(submittedText);
+                } else {
+                  isCorrect = correctArr.some(ans => ans.toLowerCase() === submittedText.toLowerCase());
+                }
+              }
+              displayStatus = isCorrect ? "correct" : "incorrect";
+            }
+          }
+
+          return (
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
+              <div className={cn(
+                "px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 border-2 font-bold text-xl backdrop-blur-md",
+                (displayStatus === "correct" && isShowingResults) && "bg-green-100/90 border-green-500 text-green-700",
+                (displayStatus === "incorrect" && isShowingResults) && "bg-destructive/10 border-destructive text-destructive",
+                (displayStatus === "submitted" && !isShowingResults) && "bg-primary/10 border-primary text-primary",
+                (!displayStatus && isShowingResults) && "bg-muted border-border text-muted-foreground",
+                (!displayStatus && !isShowingResults && isTimeUp) && "bg-muted border-border text-muted-foreground"
+              )}>
+                {(displayStatus === "correct" && isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
+                {(displayStatus === "incorrect" && isShowingResults) && <XCircle className="h-8 w-8" />}
+                {(displayStatus === "submitted" && !isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
+                {(!displayStatus && isShowingResults) && <XCircle className="h-8 w-8" />}
+                {(!displayStatus && !isShowingResults && isTimeUp) && <Clock className="h-8 w-8" />}
+                
+                {(displayStatus === "correct" && isShowingResults) && "Correct!"}
+                {(displayStatus === "incorrect" && isShowingResults) && "Incorrect!"}
+                {(displayStatus === "submitted" && !isShowingResults) && "Answer recorded! Waiting for host to reveal..."}
+                {(!displayStatus && isShowingResults) && "You didn't answer in time!"}
+                {(!displayStatus && !isShowingResults && isTimeUp) && "Time's up! Waiting for results..."}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
       </main>
 
