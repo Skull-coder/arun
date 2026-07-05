@@ -14,6 +14,16 @@ import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function HostQuizPage() {
   const params = useParams<{ id: string }>();
@@ -31,6 +41,7 @@ export default function HostQuizPage() {
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVoted, setTotalVoted] = useState(0);
   const [trackedQuestionId, setTrackedQuestionId] = useState<number | null>(null);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const quiz = data?.quiz;
   const currentQuestionId = quiz?.currentQuestionId;
@@ -151,18 +162,25 @@ export default function HostQuizPage() {
     timeRemaining = Math.max(0, currentQuestion.durationSeconds - elapsed);
   }
 
-  const handleAction = (action: "start" | "next" | "end" | "add_time", timeToAddSeconds: number ) => {
+  const handleAction = (action: any, timeToAddSeconds?: number) => {
     if (action === "end") {
-      if (!window.confirm("Are you sure you want to end the quiz early?")) return;
+      setShowEndConfirm(true);
+      return;
     }
+    executeAction(action, timeToAddSeconds);
+  };
+
+  const executeAction = (action: any, timeToAddSeconds?: number) => {
     hostControl(
       { action, timeToAddSeconds },
       {
         onSuccess: () => {
           toast.success(`Action "${action}" successful`);
+          if (action === "end") setShowEndConfirm(false);
         },
         onError: (err) => {
           toast.error(err.message || `Failed to ${action} quiz`);
+          if (action === "end") setShowEndConfirm(false);
         },
       }
     );
@@ -507,6 +525,23 @@ export default function HostQuizPage() {
           </div>
         </footer>
       )}
+
+      <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Quiz Early?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to end the quiz now? This will immediately stop the quiz for all students.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => executeAction("end")} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              End Quiz
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

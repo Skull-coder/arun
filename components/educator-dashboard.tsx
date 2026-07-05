@@ -17,6 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -104,6 +114,7 @@ export default function EducatorDashboard({ user }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [quizToDelete, setQuizToDelete] = useState<any>(null);
 
   const displayName =
     clerkUser?.fullName ||
@@ -124,22 +135,26 @@ export default function EducatorDashboard({ user }: Props) {
     });
   }, [quizzes, search, statusFilter]);
 
-  const handleDelete = async (quiz: any) => {
-    console.log("Deleting quiz:", quiz);
-    if (!window.confirm(`Delete "${quiz.title}"? This cannot be undone.`)) return;
+  const handleDelete = (quiz: any) => {
+    setQuizToDelete(quiz);
+  };
+
+  const confirmDelete = async () => {
+    if (!quizToDelete) return;
+    const quiz = quizToDelete;
     setDeletingId(quiz.id);
     deleteQuiz(quiz.id, {
       onSuccess: async () => {
         toast.success(`"${quiz.title}" deleted successfully.`);
-        // Force TanStack Query to refetch
         await queryClient.invalidateQueries({ queryKey: ["quizzes"] });
-        // Force Next.js router to refresh
         router.refresh();
         setDeletingId(null);
+        setQuizToDelete(null);
       },
       onError: (err: Error) => {
         toast.error(err.message || "Failed to delete quiz.");
         setDeletingId(null);
+        setQuizToDelete(null);
       },
     });
   };
@@ -380,6 +395,24 @@ export default function EducatorDashboard({ user }: Props) {
           )}
         </div>
       </main>
+
+      <AlertDialog open={!!quizToDelete} onOpenChange={(open) => !open && setQuizToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the quiz
+              "{quizToDelete?.title}" and remove all of its data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

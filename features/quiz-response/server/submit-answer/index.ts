@@ -83,8 +83,26 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
       correctArr.every((val, index) => val === ansArr[index]);
   }
 
-  // Determine points based on correctness
-  const score = isCorrect ? question.marks : 0;
+  // Determine points based on correctness and speed (Kahoot method)
+  let score = 0;
+  let timeTakenMs = 0;
+  
+  if (quiz.currentQuestionStartedAt) {
+    timeTakenMs = Date.now() - quiz.currentQuestionStartedAt.getTime();
+  }
+
+  if (isCorrect) {
+    if (quiz.currentQuestionStartedAt) {
+      // Bound timeTaken to duration limits to prevent negatives or >100% penalties
+      const boundedTimeMs = Math.max(0, Math.min(timeTakenMs, question.durationSeconds * 1000));
+      
+      // Kahoot Formula: Points = Round(BaseMarks * (1 - (TimeTakenMs / (DurationMs * 2))))
+      score = Math.round(question.marks * (1 - (boundedTimeMs / (question.durationSeconds * 1000 * 2))));
+    } else {
+      // Fallback if no start time was recorded for some reason
+      score = question.marks;
+    }
+  }
 
   // 4. Save or update the answer in the database
   const [existingAnswer] = await db
@@ -115,14 +133,15 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     });
   }
 
-  // 5. Update total score differentially (Saves a heavy SUM query)
+  // 5. Update total score differentially and add time taken
   const scoreDifference = score - oldScore;
-  if (scoreDifference !== 0) {
-    await db
-      .update(quizSessionsTable)
-      .set({ totalScore: sql`${quizSessionsTable.totalScore} + ${scoreDifference}` })
-      .where(eq(quizSessionsTable.id, session.id));
-  }
+  await db
+    .update(quizSessionsTable)
+    .set({ 
+      totalScore: sql`COALESCE(${quizSessionsTable.totalScore}, 0) + ${scoreDifference}`,
+      totalTimeTakenMs: sql`${quizSessionsTable.totalTimeTakenMs} + ${timeTakenMs}`
+    })
+    .where(eq(quizSessionsTable.id, session.id));
 
   // 📢 BROADCAST TO WEBSOCKETS!
   // Tell everyone (host and students) that someone just answered, so they can update the live poll!

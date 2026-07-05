@@ -83,7 +83,8 @@ export const quizSessionsTable = pgTable("quiz_sessions", {
   // "in_progress" -> "submitted" -> "graded"
   startedAt: timestamp().notNull().defaultNow(),
   submittedAt: timestamp(),
-  totalScore: integer(), // sum of obtained marks (set after grading)
+  totalScore: integer().default(0).notNull(), // sum of obtained marks (set after grading)
+  totalTimeTakenMs: integer().default(0).notNull(), // cumulative response time for tie-breakers
 });
 
 // ─── Student Answers ─────────────────────────────────────────────────────────

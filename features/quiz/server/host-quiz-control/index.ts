@@ -1,6 +1,6 @@
-import { eq, asc, gt, and, sql } from "drizzle-orm";
+import { eq, asc, desc, gt, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { quizzesTable, questionsTable } from "@/features/database/schema";
+import { quizzesTable, questionsTable, quizSessionsTable } from "@/features/database/schema";
 import { requireEducatorOwnership } from "../../utils/db-utils";
 import { HostQuizControlInput } from "@/features/quiz/validations/hostQuizControl";
 
@@ -21,13 +21,23 @@ async function broadcastState(quizId: number, status: string, questionId: number
     }
   }
 
+  let leaderboard: { studentId: string; totalScore: number }[] = [];
+  if (status === "showing_results") {
+    // Fetch the true Top 10 Leaderboard exactly ONCE for all students to prevent 50+ DB hits
+    const topStudents = await db
+      .select({ studentId: quizSessionsTable.studentId, totalScore: quizSessionsTable.totalScore })
+      .from(quizSessionsTable)
+      .where(eq(quizSessionsTable.quizId, quizId))
+      .orderBy(desc(quizSessionsTable.totalScore), asc(quizSessionsTable.totalTimeTakenMs));
+    leaderboard = topStudents;
+  }
+
   const payload = {
     status,
     currentQuestionId: questionId,
     currentQuestionStartedAt: startedAt,
     questions: questionData ? [questionData] : [],
-    // For showing_results, we broadcast the reveal trigger, but individual students might still need to fetch their specific grade.
-    // However, they can just use the correctAnswer to grade themselves locally for instant feedback!
+    leaderboard: status === "showing_results" ? leaderboard : undefined,
   };
 
   (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated", payload);

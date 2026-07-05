@@ -1,6 +1,6 @@
 "use client";
-
 import { useEffect, useState, useMemo } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useGetQuiz } from "@/hooks/tanstackQuery/quiz/use-get-quiz";
 import { useSubmitAnswer } from "@/hooks/tanstackQuery/quiz-response/use-submit-answer";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Clock, CheckCircle2, XCircle, ArrowLeft, Users } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, ArrowLeft, Users, Trophy } from "lucide-react";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,7 +29,15 @@ export default function StudentQuizPage() {
   const [liveStudentCount, setLiveStudentCount] = useState(0);
 
   const quiz = data?.quiz;
+  const { user } = useUser();
+  const userId = user?.id;
 
+  const currentRank = useMemo(() => {
+    if (!quiz?.leaderboard || !userId) return null;
+    // The leaderboard is already sorted by score (DESC) and speed (ASC)
+    const index = quiz.leaderboard.findIndex((entry: any) => entry.studentId === userId);
+    return index !== -1 ? index + 1 : null;
+  }, [quiz?.leaderboard, userId]);
   // Local state for answering
   const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
   const [sequenceOrder, setSequenceOrder] = useState<string[]>([]);
@@ -38,6 +46,51 @@ export default function StudentQuizPage() {
   const [trackedQuestionId, setTrackedQuestionId] = useState<number | null>(null);
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVoted, setTotalVoted] = useState(0);
+
+  // displayScore only syncs from DB when the quiz is NOT in_progress.
+  // This prevents leaking the result to the student (the DB already saves the
+  // score on submit, so showing it during in_progress would reveal correct/wrong).
+  const [displayScore, setDisplayScore] = useState(0);
+  useEffect(() => {
+    if (quiz?.sessionTotalScore === undefined) return;
+    if (quiz.status === "in_progress") return; // freeze — don't reveal score mid-question
+    setDisplayScore(quiz.sessionTotalScore ?? 0);
+  }, [quiz?.sessionTotalScore, quiz?.status]);
+
+  const isShowingResults = quiz?.status === "showing_results";
+  const currentQuestion = quiz?.questions?.length > 0 ? quiz.questions[0] : null;
+
+  // Compute correct/incorrect for the feedback overlay ONLY (never for scoring)
+  const displayStatus = useMemo(() => {
+    if (!isShowingResults || currentQuestion?.correctAnswer === undefined) {
+      return submittedStatus;
+    }
+    if (!submittedStatus) return null;
+
+    let isCorrect = false;
+    const { type, correctAnswer } = currentQuestion;
+    
+    if (type === "single_choice" || type === "true_false") {
+      isCorrect = correctAnswer === selectedAnswer;
+    } else if (type === "multi_choice") {
+      const correctArr = correctAnswer as string[];
+      const ansArr = (selectedAnswer as string[]) || [];
+      isCorrect = correctArr.length === ansArr.length && correctArr.every((v: string) => ansArr.includes(v));
+    } else if (type === "sequence") {
+      const correctArr = correctAnswer as string[];
+      isCorrect = correctArr.length === sequenceOrder.length && correctArr.every((v: string, i: number) => v === sequenceOrder[i]);
+    } else if (type === "text") {
+      const correctArr = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
+      const submittedText = (selectedAnswer as string) || "";
+      const config = currentQuestion.config as { caseSensitive?: boolean };
+      if (config?.caseSensitive) {
+        isCorrect = correctArr.includes(submittedText);
+      } else {
+        isCorrect = correctArr.some((ans: string) => ans.toLowerCase() === submittedText.toLowerCase());
+      }
+    }
+    return isCorrect ? "correct" : "incorrect";
+  }, [isShowingResults, currentQuestion, submittedStatus, selectedAnswer, sequenceOrder]);
 
   useEffect(() => {
     if (!quiz) return;
@@ -49,26 +102,32 @@ export default function StudentQuizPage() {
 
     newSocket.on("connect", () => {
       newSocket.emit("join_quiz", { quizId: quiz.id });
+      // Refetch the latest state from the DB just in case we missed a broadcast while offline
+      queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
     });
 
     newSocket.on("quiz_state_updated", (payload?: any) => {
       if (payload) {
-        // Instantly patch the query cache using the WebSocket payload to achieve 0ms load times!
-        queryClient.setQueryData(["quiz", params.id], (oldData: any) => {
-          if (!oldData || !oldData.quiz) return oldData;
-          return {
-            ...oldData,
-            quiz: {
-              ...oldData.quiz,
-              status: payload.status,
-              currentQuestionId: payload.currentQuestionId,
-              currentQuestionStartedAt: payload.currentQuestionStartedAt,
-              questions: payload.questions?.length ? payload.questions : oldData.quiz.questions,
-            }
-          };
-        });
+        if (payload.status === "showing_results") {
+          // For showing_results: do a real DB fetch to get the true score + leaderboard
+          queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
+        } else {
+          // For all other transitions: patch cache instantly for 0ms perceived latency
+          queryClient.setQueryData(["quiz", params.id], (oldData: any) => {
+            if (!oldData || !oldData.quiz) return oldData;
+            return {
+              ...oldData,
+              quiz: {
+                ...oldData.quiz,
+                status: payload.status,
+                currentQuestionId: payload.currentQuestionId,
+                currentQuestionStartedAt: payload.currentQuestionStartedAt,
+                questions: payload.questions?.length ? payload.questions : oldData.quiz.questions,
+              }
+            };
+          });
+        }
       } else {
-        // Fallback for legacy events
         queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
       }
     });
@@ -175,9 +234,6 @@ export default function StudentQuizPage() {
   const isWaiting = quiz.status === "waiting";
   const isInProgress = quiz.status === "in_progress";
   const isCompleted = quiz.status === "completed";
-  const isShowingResults = quiz.status === "showing_results";
-
-  const currentQuestion = quiz.questions?.length > 0 ? quiz.questions[0] : null;
 
   // Calculate remaining time
   let timeRemaining = 0;
@@ -513,6 +569,15 @@ export default function StudentQuizPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {currentRank !== null && (
+            <div className="flex items-center gap-2 rounded-full bg-indigo-500/10 px-4 py-1.5 text-sm font-bold text-indigo-600 border border-indigo-500/20 shadow-sm transition-all duration-300">
+              <span>Rank: #{currentRank}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm font-bold text-amber-600 border border-amber-500/20 shadow-sm transition-all duration-300">
+            <Trophy className="h-4 w-4" />
+            <span>Score: {displayScore}</span>
+          </div>
           {isInProgress && (
             <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20">
               <span className="font-bold">{totalVoted} / {liveStudentCount}</span> Voted
@@ -591,63 +656,30 @@ export default function StudentQuizPage() {
         )}
 
         {/* ── FEEDBACK OVERLAY (Correct/Incorrect/Time Up) ── */}
-        {(isInProgress || isShowingResults) && currentQuestion && (submittedStatus || isTimeUp || isShowingResults) && (() => {
-          let displayStatus = submittedStatus;
-          if (isShowingResults && currentQuestion.correctAnswer !== undefined) {
-            if (!submittedStatus) {
-              displayStatus = null;
-            } else {
-              let isCorrect = false;
-              const { type, correctAnswer } = currentQuestion;
+        {(isInProgress || isShowingResults) && currentQuestion && (submittedStatus || isTimeUp || isShowingResults) && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
+            <div className={cn(
+              "px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 border-2 font-bold text-xl backdrop-blur-md transition-all",
+              (displayStatus === "correct" && isShowingResults) && "bg-green-100/90 border-green-500 text-green-700",
+              (displayStatus === "incorrect" && isShowingResults) && "bg-destructive/10 border-destructive text-destructive",
+              (displayStatus === "submitted" && !isShowingResults) && "bg-primary/10 border-primary text-primary",
+              (!displayStatus && isShowingResults) && "bg-muted border-border text-muted-foreground",
+              (!displayStatus && !isShowingResults && isTimeUp) && "bg-muted border-border text-muted-foreground"
+            )}>
+              {(displayStatus === "correct" && isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
+              {(displayStatus === "incorrect" && isShowingResults) && <XCircle className="h-8 w-8" />}
+              {(displayStatus === "submitted" && !isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
+              {(!displayStatus && isShowingResults) && <XCircle className="h-8 w-8" />}
+              {(!displayStatus && !isShowingResults && isTimeUp) && <Clock className="h-8 w-8" />}
               
-              if (type === "single_choice" || type === "true_false") {
-                isCorrect = correctAnswer === selectedAnswer;
-              } else if (type === "multi_choice") {
-                const correctArr = correctAnswer as string[];
-                const ansArr = (selectedAnswer as string[]) || [];
-                isCorrect = correctArr.length === ansArr.length && correctArr.every(v => ansArr.includes(v));
-              } else if (type === "sequence") {
-                const correctArr = correctAnswer as string[];
-                isCorrect = correctArr.length === sequenceOrder.length && correctArr.every((v, i) => v === sequenceOrder[i]);
-              } else if (type === "text") {
-                const correctArr = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
-                const submittedText = (selectedAnswer as string) || "";
-                const config = currentQuestion.config as { caseSensitive?: boolean };
-                if (config?.caseSensitive) {
-                  isCorrect = correctArr.includes(submittedText);
-                } else {
-                  isCorrect = correctArr.some(ans => ans.toLowerCase() === submittedText.toLowerCase());
-                }
-              }
-              displayStatus = isCorrect ? "correct" : "incorrect";
-            }
-          }
-
-          return (
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
-              <div className={cn(
-                "px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 border-2 font-bold text-xl backdrop-blur-md",
-                (displayStatus === "correct" && isShowingResults) && "bg-green-100/90 border-green-500 text-green-700",
-                (displayStatus === "incorrect" && isShowingResults) && "bg-destructive/10 border-destructive text-destructive",
-                (displayStatus === "submitted" && !isShowingResults) && "bg-primary/10 border-primary text-primary",
-                (!displayStatus && isShowingResults) && "bg-muted border-border text-muted-foreground",
-                (!displayStatus && !isShowingResults && isTimeUp) && "bg-muted border-border text-muted-foreground"
-              )}>
-                {(displayStatus === "correct" && isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
-                {(displayStatus === "incorrect" && isShowingResults) && <XCircle className="h-8 w-8" />}
-                {(displayStatus === "submitted" && !isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
-                {(!displayStatus && isShowingResults) && <XCircle className="h-8 w-8" />}
-                {(!displayStatus && !isShowingResults && isTimeUp) && <Clock className="h-8 w-8" />}
-                
-                {(displayStatus === "correct" && isShowingResults) && "Correct!"}
-                {(displayStatus === "incorrect" && isShowingResults) && "Incorrect!"}
-                {(displayStatus === "submitted" && !isShowingResults) && "Answer recorded! Waiting for host to reveal..."}
-                {(!displayStatus && isShowingResults) && "You didn't answer in time!"}
-                {(!displayStatus && !isShowingResults && isTimeUp) && "Time's up! Waiting for results..."}
-              </div>
+              {(displayStatus === "correct" && isShowingResults) && "Correct!"}
+              {(displayStatus === "incorrect" && isShowingResults) && "Incorrect!"}
+              {(displayStatus === "submitted" && !isShowingResults) && "Answer recorded! Waiting for host to reveal..."}
+              {(!displayStatus && isShowingResults) && "You didn't answer in time!"}
+              {(!displayStatus && !isShowingResults && isTimeUp) && "Time's up! Waiting for results..."}
             </div>
-          );
-        })()}
+          </div>
+        )}
 
       </main>
 
