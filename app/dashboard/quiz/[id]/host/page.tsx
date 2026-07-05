@@ -9,11 +9,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, Play, SkipForward, Square, Clock, Users } from "lucide-react";
+import { ArrowLeft, Play, SkipForward, Square, Clock, Users, Trophy } from "lucide-react";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function HostQuizPage() {
   const params = useParams<{ id: string }>();
@@ -31,9 +41,21 @@ export default function HostQuizPage() {
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVoted, setTotalVoted] = useState(0);
   const [trackedQuestionId, setTrackedQuestionId] = useState<number | null>(null);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const quiz = data?.quiz;
   const currentQuestionId = quiz?.currentQuestionId;
+
+  // Persist leaderboard: only update when we get fresh data from showing_results.
+  // This keeps the last-known rankings visible during in_progress instead of resetting to placeholder.
+  type LeaderboardEntry = { studentId: string; totalScore: number; firstName: string | null; lastName: string | null; rollNumber: string | null };
+  const [lastLeaderboard, setLastLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  useEffect(() => {
+    if (quiz?.leaderboard && quiz.leaderboard.length > 0) {
+      setLastLeaderboard(quiz.leaderboard);
+    }
+  }, [quiz?.leaderboard]);
 
   // Reset votes when question changes
   useEffect(() => {
@@ -151,18 +173,25 @@ export default function HostQuizPage() {
     timeRemaining = Math.max(0, currentQuestion.durationSeconds - elapsed);
   }
 
-  const handleAction = (action: "start" | "next" | "end" | "add_time", timeToAddSeconds: number ) => {
+  const handleAction = (action: any, timeToAddSeconds?: number) => {
     if (action === "end") {
-      if (!window.confirm("Are you sure you want to end the quiz early?")) return;
+      setShowEndConfirm(true);
+      return;
     }
+    executeAction(action, timeToAddSeconds);
+  };
+
+  const executeAction = (action: any, timeToAddSeconds?: number) => {
     hostControl(
       { action, timeToAddSeconds },
       {
         onSuccess: () => {
           toast.success(`Action "${action}" successful`);
+          if (action === "end") setShowEndConfirm(false);
         },
         onError: (err) => {
           toast.error(err.message || `Failed to ${action} quiz`);
+          if (action === "end") setShowEndConfirm(false);
         },
       }
     );
@@ -371,90 +400,161 @@ export default function HostQuizPage() {
       </header>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex flex-1 flex-col relative">
-        
-        {/* HUGE JOIN CODE BANNER (Only before starting) */}
-        {(isDraft || isWaiting) && !isInProgress && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-            <Card className="w-full max-w-4xl border-4 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden">
-              <div className="bg-primary px-4 py-3 text-center text-primary-foreground text-sm font-bold tracking-widest uppercase">
-                Join Code
-              </div>
-              <CardContent className="flex flex-col items-center justify-center p-16">
-                <p className="text-muted-foreground mb-6 font-medium text-2xl">
-                  Go to <span className="font-bold text-foreground">eduquiz.app/join</span> and enter:
-                </p>
-                <div className="rounded-2xl bg-background border-2 border-primary/30 px-16 py-8 shadow-inner">
-                  <span className="text-8xl font-black tracking-[0.25em] text-foreground font-mono">
-                    {quiz.joinCode}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-            <div className="mt-12">
-              <Button 
-                size="lg" 
-                className="h-20 px-16 rounded-2xl text-2xl font-bold shadow-xl gap-4"
-                disabled={isControlling}
-                onClick={() => handleAction("start")}
-              >
-                <Play className="h-8 w-8" />
-                Start Quiz
-              </Button>
+      <main className="flex flex-1 overflow-hidden">
+
+        {/* LEFT: Leaderboard Sidebar — only during active quiz */}
+        {(isInProgress || isShowingResults) && (
+        <aside className="w-72 shrink-0 border-r border-border bg-card flex flex-col h-full overflow-hidden">
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <span className="font-bold text-sm text-foreground">Leaderboard</span>
             </div>
+            <Badge variant="secondary" className="text-xs">
+              {lastLeaderboard.length} students
+            </Badge>
           </div>
+
+          {/* Sidebar Body */}
+          {lastLeaderboard.length === 0 ? (
+            // No results yet — first question hasn't been revealed
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <Trophy className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="font-semibold text-foreground text-sm">Results will appear here</p>
+              <p className="text-xs text-muted-foreground">Click &apos;Show Results&apos; after the first question</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              {isInProgress && (
+                <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 border-b border-border font-medium">
+                  Previous question rankings
+                </div>
+              )}
+              <ul className="divide-y divide-border">
+                {lastLeaderboard.map((entry, index) => {
+                  const rank = index + 1;
+                  const name = [entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown Student";
+                  return (
+                    <li key={entry.studentId} className="flex items-center gap-3 px-3 py-2.5">
+                      {/* Rank badge */}
+                      <div className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                        rank === 1 ? "bg-amber-500 text-white" :
+                        rank === 2 ? "bg-slate-400 text-white" :
+                        rank === 3 ? "bg-orange-700 text-white" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        {rank}
+                      </div>
+                      {/* Name + Roll */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                        {entry.rollNumber && (
+                          <span className="inline-block font-mono text-xs bg-muted rounded px-2 py-0.5 mt-0.5 max-w-full truncate">
+                            {entry.rollNumber}
+                          </span>
+                        )}
+                      </div>
+                      {/* Score */}
+                      <span className="text-sm font-bold text-primary shrink-0">{entry.totalScore}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+        </aside>
         )}
 
-        {/* ACTIVE QUESTION PANEL (Full Screen) */}
-        {(isInProgress || isShowingResults) && currentQuestion && (
-          <div className="flex-1 flex flex-col p-8 overflow-y-auto">
-            <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
-              
-              <div className="flex items-center justify-between mb-8">
-                <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider text-muted-foreground border-border">
-                  Question {currentQuestionIndex + 1} of {quiz.questions?.length ?? 0}
-                </Badge>
-                
-                {/* TIMER BUBBLE */}
-                <div className={cn(
-                  "flex items-center gap-2 px-5 py-2 rounded-full border-2 font-mono text-2xl font-bold shadow-sm transition-colors",
-                  timeRemaining <= 5 
-                    ? "border-destructive/50 bg-destructive/10 text-destructive animate-pulse" 
-                    : timeRemaining <= 15
-                    ? "border-orange-500/50 bg-orange-500/10 text-orange-600"
-                    : "border-primary/30 bg-primary/5 text-primary"
-                )}>
-                  <Clock className="h-6 w-6" />
-                  {timeRemaining}s
+        {/* RIGHT: Existing main content */}
+        <div className="flex-1 flex flex-col relative overflow-y-auto">
+          {/* HUGE JOIN CODE BANNER (Only before starting) */}
+          {(isDraft || isWaiting) && !isInProgress && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+              <Card className="w-full max-w-4xl border-4 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden">
+                <div className="bg-primary px-4 py-3 text-center text-primary-foreground text-sm font-bold tracking-widest uppercase">
+                  Join Code
                 </div>
-              </div>
-
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <h3 className="text-4xl md:text-5xl font-bold text-foreground leading-tight max-w-4xl">
-                  {currentQuestion.text}
-                </h3>
-                
-                {renderOptions()}
+                <CardContent className="flex flex-col items-center justify-center p-16">
+                  <p className="text-muted-foreground mb-6 font-medium text-2xl">
+                    Go to <span className="font-bold text-foreground">eduquiz.app/join</span> and enter:
+                  </p>
+                  <div className="rounded-2xl bg-background border-2 border-primary/30 px-16 py-8 shadow-inner">
+                    <span className="text-8xl font-black tracking-[0.25em] text-foreground font-mono">
+                      {quiz.joinCode}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="mt-12">
+                <Button 
+                  size="lg" 
+                  className="h-20 px-16 rounded-2xl text-2xl font-bold shadow-xl gap-4"
+                  disabled={isControlling}
+                  onClick={() => handleAction("start")}
+                >
+                  <Play className="h-8 w-8" />
+                  Start Quiz
+                </Button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* COMPLETED STATE */}
-        {isCompleted && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-            <Card className="w-full max-w-2xl border-2 border-border shadow-2xl text-center p-16">
-              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-                <Square className="h-12 w-12 text-primary" />
+          {/* ACTIVE QUESTION PANEL (Full Screen) */}
+          {(isInProgress || isShowingResults) && currentQuestion && (
+            <div className="flex-1 flex flex-col p-8 overflow-y-auto">
+              <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
+                
+                <div className="flex items-center justify-between mb-8">
+                  <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider text-muted-foreground border-border">
+                    Question {currentQuestionIndex + 1} of {quiz.questions?.length ?? 0}
+                  </Badge>
+                  
+                  {/* TIMER BUBBLE */}
+                  <div className={cn(
+                    "flex items-center gap-2 px-5 py-2 rounded-full border-2 font-mono text-2xl font-bold shadow-sm transition-colors",
+                    timeRemaining <= 5 
+                      ? "border-destructive/50 bg-destructive/10 text-destructive animate-pulse" 
+                      : timeRemaining <= 15
+                      ? "border-orange-500/50 bg-orange-500/10 text-orange-600"
+                      : "border-primary/30 bg-primary/5 text-primary"
+                  )}>
+                    <Clock className="h-6 w-6" />
+                    {timeRemaining}s
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <h3 className="text-4xl md:text-5xl font-bold text-foreground leading-tight max-w-4xl">
+                    {currentQuestion.text}
+                  </h3>
+                  
+                  {renderOptions()}
+                </div>
               </div>
-              <h2 className="text-4xl font-bold text-foreground">Quiz Ended</h2>
-              <p className="mt-4 text-xl text-muted-foreground">The quiz has been successfully completed.</p>
-              <Button asChild size="lg" className="mt-12 h-14 px-8 text-lg font-bold">
-                <Link href="/dashboard">Back to Dashboard</Link>
-              </Button>
-            </Card>
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* COMPLETED STATE */}
+          {isCompleted && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+              <Card className="w-full max-w-2xl border-2 border-border shadow-2xl text-center p-16">
+                <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
+                  <Square className="h-12 w-12 text-primary" />
+                </div>
+                <h2 className="text-4xl font-bold text-foreground">Quiz Ended</h2>
+                <p className="mt-4 text-xl text-muted-foreground">The quiz has been successfully completed.</p>
+                <Button asChild size="lg" className="mt-12 h-14 px-8 text-lg font-bold">
+                  <Link href="/dashboard">Back to Dashboard</Link>
+                </Button>
+              </Card>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* ── BOTTOM HOST CONTROLS (Only when in progress or showing results) ── */}
@@ -507,6 +607,23 @@ export default function HostQuizPage() {
           </div>
         </footer>
       )}
+
+      <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Quiz Early?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to end the quiz now? This will immediately stop the quiz for all students.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => executeAction("end")} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              End Quiz
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

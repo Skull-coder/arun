@@ -1,4 +1,4 @@
-import { eq, desc, count, inArray, sql, and } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, sql, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable, quizSessionsTable, studentAnswersTable } from "@/features/database/schema";
 
@@ -115,7 +115,23 @@ export async function getQuiz(quizId: number, userId: string) {
       .where(eq(questionsTable.quizId, quizId))
       .orderBy(questionsTable.order);
 
-    return { quiz: { ...quizRow, questions } };
+    let leaderboard: { studentId: string; totalScore: number; firstName: string | null; lastName: string | null; rollNumber: string | null }[] | undefined = undefined;
+    if (quizRow.status === "showing_results") {
+      leaderboard = await db
+        .select({
+          studentId: quizSessionsTable.studentId,
+          totalScore: quizSessionsTable.totalScore,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          rollNumber: usersTable.rollNumber,
+        })
+        .from(quizSessionsTable)
+        .innerJoin(usersTable, eq(usersTable.id, quizSessionsTable.studentId))
+        .where(eq(quizSessionsTable.quizId, quizId))
+        .orderBy(desc(quizSessionsTable.totalScore), asc(quizSessionsTable.totalTimeTakenMs));
+    }
+
+    return { quiz: { ...quizRow, questions, leaderboard } };
   }
 
   // 3. STUDENT LOGIC: Security & Performance checks
@@ -125,7 +141,7 @@ export async function getQuiz(quizId: number, userId: string) {
 
   // Check if student has joined
   const [session] = await db
-    .select({ id: quizSessionsTable.id })
+    .select({ id: quizSessionsTable.id, totalScore: quizSessionsTable.totalScore })
     .from(quizSessionsTable)
     .where(
       and(
@@ -193,6 +209,22 @@ export async function getQuiz(quizId: number, userId: string) {
       }
     }
   }
+  let leaderboard: { studentId: string; totalScore: number; firstName: string | null; lastName: string | null; rollNumber: string | null }[] | undefined = undefined;
+  if (quizRow.status === "showing_results") {
+    const topStudents = await db
+      .select({
+        studentId: quizSessionsTable.studentId,
+        totalScore: quizSessionsTable.totalScore,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        rollNumber: usersTable.rollNumber,
+      })
+      .from(quizSessionsTable)
+      .innerJoin(usersTable, eq(usersTable.id, quizSessionsTable.studentId))
+      .where(eq(quizSessionsTable.quizId, quizId))
+      .orderBy(desc(quizSessionsTable.totalScore), asc(quizSessionsTable.totalTimeTakenMs));
+    leaderboard = topStudents;
+  }
 
-  return { quiz: { ...quizRow, questions, studentAnswer } };
+  return { quiz: { ...quizRow, questions, studentAnswer, sessionTotalScore: session.totalScore, leaderboard } };
 }

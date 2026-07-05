@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { usersTable } from "@/features/database/schema";
 import { eq } from "drizzle-orm";
+import { updateProfile } from "@/features/user/server/update-profile";
 
 export async function GET() {
   try {
@@ -24,6 +25,18 @@ export async function GET() {
     return NextResponse.json({ user });
   } catch (error) {
     console.error("Error fetching user profile:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const result = await updateProfile(body);
+    const { status, ...data } = result;
+    return NextResponse.json(data, { status });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
