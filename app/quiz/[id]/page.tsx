@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Clock, CheckCircle2, XCircle, ArrowLeft, Users, Trophy } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, ArrowLeft, Users, Trophy, Settings } from "lucide-react";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { StudentProfileModal } from "@/components/student-profile-modal";
 
 export default function StudentQuizPage() {
   const params = useParams<{ id: string }>();
@@ -31,6 +32,19 @@ export default function StudentQuizPage() {
   const quiz = data?.quiz;
   const { user } = useUser();
   const userId = user?.id;
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileData, setProfileData] = useState<{ rollNumber: string | null } | null>(null);
+
+  // Fetch roll number from server on mount
+  useEffect(() => {
+    fetch("/api/user/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) setProfileData({ rollNumber: d.user.rollNumber ?? null });
+      })
+      .catch(() => {});
+  }, []);
 
   const currentRank = useMemo(() => {
     if (!quiz?.leaderboard || !userId) return null;
@@ -587,6 +601,14 @@ export default function StudentQuizPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
             {liveStudentCount} {liveStudentCount === 1 ? "Student" : "Students"}
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => setProfileOpen(true)}
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 
@@ -698,6 +720,16 @@ export default function StudentQuizPage() {
           </div>
         </footer>
       )}
+
+      <StudentProfileModal
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        user={{
+          firstName: user?.firstName ?? null,
+          lastName: user?.lastName ?? null,
+          rollNumber: profileData?.rollNumber ?? null,
+        }}
+      />
     </div>
   );
 }

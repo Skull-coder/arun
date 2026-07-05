@@ -15,6 +15,7 @@ export const usersTable = pgTable("users", {
   email: varchar({ length: 255 }).notNull().unique(),
   firstName: varchar({ length: 255 }),
   lastName: varchar({ length: 255 }),
+  rollNumber: varchar({ length: 20 }), // Nullable: student roll number (e.g. 12345678)
   role: varchar({ length: 20 }), // Nullable: "student" | "educator" (set during onboarding)
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),

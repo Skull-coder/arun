@@ -1,6 +1,6 @@
 import { eq, asc, desc, gt, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { quizzesTable, questionsTable, quizSessionsTable } from "@/features/database/schema";
+import { quizzesTable, questionsTable, quizSessionsTable, usersTable } from "@/features/database/schema";
 import { requireEducatorOwnership } from "../../utils/db-utils";
 import { HostQuizControlInput } from "@/features/quiz/validations/hostQuizControl";
 
@@ -21,12 +21,18 @@ async function broadcastState(quizId: number, status: string, questionId: number
     }
   }
 
-  let leaderboard: { studentId: string; totalScore: number }[] = [];
+  let leaderboard: { studentId: string; totalScore: number; firstName: string | null; lastName: string | null; rollNumber: string | null }[] = [];
   if (status === "showing_results") {
-    // Fetch the true Top 10 Leaderboard exactly ONCE for all students to prevent 50+ DB hits
     const topStudents = await db
-      .select({ studentId: quizSessionsTable.studentId, totalScore: quizSessionsTable.totalScore })
+      .select({
+        studentId: quizSessionsTable.studentId,
+        totalScore: quizSessionsTable.totalScore,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        rollNumber: usersTable.rollNumber,
+      })
       .from(quizSessionsTable)
+      .innerJoin(usersTable, eq(usersTable.id, quizSessionsTable.studentId))
       .where(eq(quizSessionsTable.quizId, quizId))
       .orderBy(desc(quizSessionsTable.totalScore), asc(quizSessionsTable.totalTimeTakenMs));
     leaderboard = topStudents;
