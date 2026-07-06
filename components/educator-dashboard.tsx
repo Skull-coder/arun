@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { useUser, SignOutButton, UserButton } from "@clerk/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { AppSidebar, type NavItem } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,8 +46,6 @@ import {
   Play,
   Trash2,
   Pencil,
-  LogOut,
-  LayoutDashboard,
   Search,
   Hash,
   Clock,
@@ -64,13 +62,6 @@ type Props = {
     email: string;
     role: string | null;
   };
-};
-
-type NavItem = {
-  label: string;
-  icon: React.ElementType;
-  active?: boolean;
-  soon?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -105,7 +96,6 @@ function formatDate(d: string) {
 }
 
 export default function EducatorDashboard({ user }: Props) {
-  const { user: clerkUser } = useUser();
   const { data: quizzes, isLoading } = useGetQuizzes();
   const { mutate: deleteQuiz, isPending: isDeleting } = useDeleteQuiz();
 
@@ -116,11 +106,6 @@ export default function EducatorDashboard({ user }: Props) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [quizToDelete, setQuizToDelete] = useState<any>(null);
-
-  const displayName =
-    clerkUser?.fullName ||
-    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-    user.email;
 
   const filtered = useMemo(() => {
     if (!quizzes) return [];
@@ -163,59 +148,7 @@ export default function EducatorDashboard({ user }: Props) {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* ── SIDEBAR ── */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
-        <div className="flex items-center gap-2.5 px-4 py-4">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <LayoutDashboard className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold text-card-foreground">EduQuiz</span>
-        </div>
-
-        <Separator />
-
-        <nav className="flex-1 space-y-0.5 px-2 py-3">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.label}
-                className={cn(
-                  "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  item.active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.soon && (
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 leading-tight">
-                    Soon
-                  </Badge>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <Separator />
-
-        <div className="p-3 space-y-2">
-          <div className="flex items-center gap-2.5 px-1">
-            <UserButton />
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-card-foreground">{displayName}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-          <SignOutButton>
-            <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground text-xs">
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </Button>
-          </SignOutButton>
-        </div>
-      </aside>
+      <AppSidebar user={user} navItems={navItems} />
 
       {/* ── MAIN ── */}
       <main className="flex flex-1 flex-col overflow-hidden bg-background">
