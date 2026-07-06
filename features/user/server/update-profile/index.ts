@@ -10,7 +10,7 @@ export async function updateProfile(data: unknown) {
 
   const parsed = updateProfileSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message, status: 400 };
+    return { error: parsed.error.issues[0].message, status: 400 };
   }
 
   const { firstName, lastName, rollNumber } = parsed.data;

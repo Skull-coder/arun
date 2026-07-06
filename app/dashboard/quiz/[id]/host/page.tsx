@@ -133,7 +133,7 @@ export default function HostQuizPage() {
   // Automatically open the quiz (transition from draft to waiting) when the host lands here
   useEffect(() => {
     if (quiz && quiz.status === "draft") {
-      hostControl({ action: "open" as any }); // 'open' might not be perfectly typed locally, but the API will accept it
+      hostControl({ action: "open" as any, timeToAddSeconds: 15 }); // 'open' might not be perfectly typed locally, but the API will accept it
     }
   }, [quiz?.status]);
 
@@ -183,7 +183,7 @@ export default function HostQuizPage() {
 
   const executeAction = (action: any, timeToAddSeconds?: number) => {
     hostControl(
-      { action, timeToAddSeconds },
+      { action, timeToAddSeconds: timeToAddSeconds ?? 15 },
       {
         onSuccess: () => {
           toast.success(`Action "${action}" successful`);
@@ -206,6 +206,8 @@ export default function HostQuizPage() {
     if (currentQuestion.type === "single_choice" || currentQuestion.type === "multi_choice") {
       const options = currentQuestion.config?.options ?? [];
       const labels = "ABCDEFGHIJ".split("");
+      const sumVotes = Object.values(voteCounts).reduce((a, b) => a + b, 0) || 0;
+
       return (
         <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
@@ -215,7 +217,7 @@ export default function HostQuizPage() {
                 : Array.isArray(ans) && ans.includes(opt.id);
             
               const optionVotes = voteCounts[String(opt.id)] || 0;
-              const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
+              const percentage = sumVotes > 0 ? Math.round((optionVotes / sumVotes) * 100) : 0;
 
               return (
                 <div 
@@ -263,8 +265,10 @@ export default function HostQuizPage() {
     if (currentQuestion.type === "true_false") {
       const trueVotes = voteCounts["true"] || 0;
       const falseVotes = voteCounts["false"] || 0;
-      const truePct = totalVoted > 0 ? Math.round((trueVotes / totalVoted) * 100) : 0;
-      const falsePct = totalVoted > 0 ? Math.round((falseVotes / totalVoted) * 100) : 0;
+      const sumVotes = trueVotes + falseVotes;
+      const truePct = sumVotes > 0 ? Math.round((trueVotes / sumVotes) * 100) : 0;
+      const falsePct = sumVotes > 0 ? Math.round((falseVotes / sumVotes) * 100) : 0;
+
 
       return (
         <div className="flex gap-6 mt-8 w-full max-w-2xl mx-auto">
@@ -513,8 +517,15 @@ export default function HostQuizPage() {
                   <Badge variant="outline" className="text-sm px-3 py-1 font-semibold uppercase tracking-wider text-muted-foreground border-border">
                     Question {currentQuestionIndex + 1} of {quiz.questions?.length ?? 0}
                   </Badge>
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5 ml-2">
+                    {currentQuestion.type === "single_choice" && "Single Correct"}
+                    {currentQuestion.type === "multi_choice" && "Multiple Correct"}
+                    {currentQuestion.type === "true_false" && "True/False"}
+                    {currentQuestion.type === "sequence" && "Order Items"}
+                    {currentQuestion.type === "text" && "Text Answer"}
+                  </Badge>
                   
-                  {/* TIMER BUBBLE */}
+                {/* TIMER BUBBLE */}
                   <div className={cn(
                     "flex items-center gap-2 px-5 py-2 rounded-full border-2 font-mono text-2xl font-bold shadow-sm transition-colors",
                     timeRemaining <= 5 
@@ -548,9 +559,17 @@ export default function HostQuizPage() {
                 </div>
                 <h2 className="text-4xl font-bold text-foreground">Quiz Ended</h2>
                 <p className="mt-4 text-xl text-muted-foreground">The quiz has been successfully completed.</p>
-                <Button asChild size="lg" className="mt-12 h-14 px-8 text-lg font-bold">
-                  <Link href="/dashboard">Back to Dashboard</Link>
-                </Button>
+                <div className="mt-12 flex items-center justify-center gap-4">
+                  <Button asChild size="lg" variant="outline" className="h-14 px-8 text-lg font-bold">
+                    <Link href="/dashboard">Back to Dashboard</Link>
+                  </Button>
+                  <Button asChild size="lg" className="h-14 px-8 text-lg font-bold gap-2 shadow-lg">
+                    <Link href={`/quiz/${quiz.id}/results`}>
+                      <Trophy className="h-5 w-5" />
+                      View Final Results
+                    </Link>
+                  </Button>
+                </div>
               </Card>
             </div>
           )}

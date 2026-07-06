@@ -505,7 +505,7 @@ export default function EditQuizPage() {
     }));
 
     updateQuiz(
-      { title: quizTitle, description: quizDescription, questions: formatted },
+      { quizId: Number(params.id), title: quizTitle, description: quizDescription, questions: formatted },
       {
         onSuccess: () => {
           toast.success("Quiz updated successfully!");

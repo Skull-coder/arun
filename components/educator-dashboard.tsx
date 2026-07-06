@@ -52,6 +52,7 @@ import {
   Hash,
   Clock,
   Filter,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -363,18 +364,29 @@ export default function EducatorDashboard({ user }: Props) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1.5">
-                        <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
-                          <Link href={`/dashboard/quiz/${quiz.id}/host`}>
-                            <Play className="h-3.5 w-3.5" />
-                            Host
-                          </Link>
-                        </Button>
-                        <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                          <Link href={`/dashboard/quiz/${quiz.id}/edit`}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </Link>
-                        </Button>
+                        {quiz.status === "completed" ? (
+                          <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+                            <Link href={`/quiz/${quiz.id}/results`}>
+                              <Trophy className="h-3.5 w-3.5" />
+                              View Results
+                            </Link>
+                          </Button>
+                        ) : (
+                          <>
+                            <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+                              <Link href={`/dashboard/quiz/${quiz.id}/host`}>
+                                <Play className="h-3.5 w-3.5" />
+                                Host
+                              </Link>
+                            </Button>
+                            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                              <Link href={`/dashboard/quiz/${quiz.id}/edit`}>
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                              </Link>
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"

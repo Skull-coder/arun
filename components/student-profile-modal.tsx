@@ -44,7 +44,7 @@ export function StudentProfileModal({ open, onOpenChange, user }: Props) {
 
   const handleSave = () => {
     updateProfile(
-      { firstName, lastName, rollNumber: rollNumber || null },
+      { firstName, lastName, rollNumber: rollNumber || undefined },
       {
         onSuccess: () => {
           toast.success("Profile updated!");

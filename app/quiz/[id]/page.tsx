@@ -321,6 +321,8 @@ export default function StudentQuizPage() {
     if (currentQuestion.type === "single_choice") {
       const options = currentQuestion.config?.options ?? [];
       const labels = "ABCDEFGHIJ".split("");
+      const sumVotes = Object.values(voteCounts).reduce((a, b) => a + b, 0) || 0;
+
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
@@ -329,7 +331,7 @@ export default function StudentQuizPage() {
             const isWrongSelection = isShowingResults && isSelected && !isCorrectAnswer;
             
             const optionVotes = voteCounts[String(opt.id)] || 0;
-            const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
+            const percentage = sumVotes > 0 ? Math.round((optionVotes / sumVotes) * 100) : 0;
             
             return (
               <button
@@ -377,6 +379,8 @@ export default function StudentQuizPage() {
     if (currentQuestion.type === "multi_choice") {
       const options = currentQuestion.config?.options ?? [];
       const labels = "ABCDEFGHIJ".split("");
+      const sumVotes = Object.values(voteCounts).reduce((a, b) => a + b, 0) || 0;
+
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
@@ -385,7 +389,7 @@ export default function StudentQuizPage() {
             const isWrongSelection = isShowingResults && isSelected && !isCorrectAnswer;
 
             const optionVotes = voteCounts[String(opt.id)] || 0;
-            const percentage = totalVoted > 0 ? Math.round((optionVotes / totalVoted) * 100) : 0;
+            const percentage = sumVotes > 0 ? Math.round((optionVotes / sumVotes) * 100) : 0;
 
             return (
               <button
@@ -438,8 +442,9 @@ export default function StudentQuizPage() {
     if (currentQuestion.type === "true_false") {
       const trueVotes = voteCounts["true"] || 0;
       const falseVotes = voteCounts["false"] || 0;
-      const truePct = totalVoted > 0 ? Math.round((trueVotes / totalVoted) * 100) : 0;
-      const falsePct = totalVoted > 0 ? Math.round((falseVotes / totalVoted) * 100) : 0;
+      const sumVotes = trueVotes + falseVotes;
+      const truePct = sumVotes > 0 ? Math.round((trueVotes / sumVotes) * 100) : 0;
+      const falsePct = sumVotes > 0 ? Math.round((falseVotes / sumVotes) * 100) : 0;
 
       const isTrueCorrect = isShowingResults && currentQuestion.correctAnswer === true;
       const isFalseCorrect = isShowingResults && currentQuestion.correctAnswer === false;
@@ -489,7 +494,7 @@ export default function StudentQuizPage() {
       
       return (
         <div className="flex flex-col gap-3 mt-8 w-full max-w-2xl mx-auto">
-          <p className="text-sm text-muted-foreground mb-2">Tap the items in the correct order:</p>
+          <p className="text-sm text-muted-foreground mb-2">Tap the items in the correct order to select them (1, 2, 3...):</p>
           {items.map((item: any) => {
             const indexInOrder = sequenceOrder.indexOf(item.id);
             const isSelected = indexInOrder !== -1;
@@ -649,8 +654,19 @@ export default function StudentQuizPage() {
                   {isShowingResults ? "Time's Up!" : `${timeRemaining}s`}
                 </div>
               </div>
-
               <div className="flex-1 flex flex-col items-center justify-start text-center pb-24">
+                
+                {/* QUESTION TYPE BADGE */}
+                <div className="mb-4">
+                  <Badge variant="secondary" className="text-sm px-3 py-1 bg-muted">
+                    {currentQuestion.type === "single_choice" && "Single Correct Option"}
+                    {currentQuestion.type === "multi_choice" && "Multiple Correct Options"}
+                    {currentQuestion.type === "true_false" && "True or False"}
+                    {currentQuestion.type === "sequence" && "Order the items (1st, 2nd, ...)"}
+                    {currentQuestion.type === "text" && "Type your answer"}
+                  </Badge>
+                </div>
+
                 <h3 className="text-3xl md:text-4xl font-bold text-foreground leading-tight max-w-4xl">
                   {currentQuestion.text}
                 </h3>
@@ -670,9 +686,17 @@ export default function StudentQuizPage() {
               </div>
               <h2 className="text-3xl font-bold text-foreground">Quiz Ended</h2>
               <p className="mt-4 text-lg text-muted-foreground">The host has ended the session.</p>
-              <Button asChild className="mt-8 w-full" variant="outline">
-                <Link href="/">Back Home</Link>
-              </Button>
+              <div className="mt-8 flex flex-col gap-3">
+                <Button asChild size="lg" className="w-full text-lg font-bold gap-2 shadow-lg">
+                  <Link href={`/quiz/${quiz.id}/results`}>
+                    <Trophy className="h-5 w-5" />
+                    View Final Results
+                  </Link>
+                </Button>
+                <Button asChild className="w-full" variant="outline">
+                  <Link href="/dashboard">Back to Dashboard</Link>
+                </Button>
+              </div>
             </Card>
           </div>
         )}
