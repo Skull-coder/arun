@@ -276,7 +276,7 @@ export default function EducatorDashboard({ user }: Props) {
                     <TableCell>
                       <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Hash className="h-3.5 w-3.5" />
-                        {quiz.questionCount ?? 0}
+                        {quiz.totalQuestions ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>

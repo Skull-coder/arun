@@ -104,9 +104,9 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     }
   }
 
-  // 4. Save or update the answer in the database
+  // 4. Check if they already answered
   const [existingAnswer] = await db
-    .select({ id: studentAnswersTable.id, score: studentAnswersTable.score })
+    .select({ id: studentAnswersTable.id })
     .from(studentAnswersTable)
     .where(
       and(
@@ -116,29 +116,24 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
     )
     .limit(1);
 
-  const oldScore = existingAnswer?.score || 0;
-
   if (existingAnswer) {
-    await db
-      .update(studentAnswersTable)
-      .set({ answer, isCorrect, score })
-      .where(eq(studentAnswersTable.id, existingAnswer.id));
-  } else {
-    await db.insert(studentAnswersTable).values({
-      sessionId: session.id,
-      questionId,
-      answer,
-      isCorrect,
-      score,
-    });
+    return { error: "You have already submitted an answer for this question.", status: 400 };
   }
 
-  // 5. Update total score differentially and add time taken
-  const scoreDifference = score - oldScore;
+  // 5. Save the answer in the database
+  await db.insert(studentAnswersTable).values({
+    sessionId: session.id,
+    questionId,
+    answer,
+    isCorrect,
+    score,
+  });
+
+  // 6. Update total score and add time taken
   await db
     .update(quizSessionsTable)
     .set({ 
-      totalScore: sql`COALESCE(${quizSessionsTable.totalScore}, 0) + ${scoreDifference}`,
+      totalScore: sql`COALESCE(${quizSessionsTable.totalScore}, 0) + ${score}`,
       totalTimeTakenMs: sql`${quizSessionsTable.totalTimeTakenMs} + ${timeTakenMs}`
     })
     .where(eq(quizSessionsTable.id, session.id));
