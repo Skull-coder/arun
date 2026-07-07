@@ -47,11 +47,9 @@ export default function StudentQuizPage() {
   }, []);
 
   const currentRank = useMemo(() => {
-    if (!quiz?.leaderboard || !userId) return null;
-    // The leaderboard is already sorted by score (DESC) and speed (ASC)
-    const index = quiz.leaderboard.findIndex((entry: any) => entry.studentId === userId);
-    return index !== -1 ? index + 1 : null;
-  }, [quiz?.leaderboard, userId]);
+    if (quiz?.studentRank !== undefined) return quiz.studentRank;
+    return null;
+  }, [quiz?.studentRank]);
   // Local state for answering
   const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
   const [sequenceOrder, setSequenceOrder] = useState<string[]>([]);
@@ -61,15 +59,7 @@ export default function StudentQuizPage() {
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVoted, setTotalVoted] = useState(0);
 
-  // displayScore only syncs from DB when the quiz is NOT in_progress.
-  // This prevents leaking the result to the student (the DB already saves the
-  // score on submit, so showing it during in_progress would reveal correct/wrong).
-  const [displayScore, setDisplayScore] = useState(0);
-  useEffect(() => {
-    if (quiz?.sessionTotalScore === undefined) return;
-    if (quiz.status === "in_progress") return; // freeze — don't reveal score mid-question
-    setDisplayScore(quiz.sessionTotalScore ?? 0);
-  }, [quiz?.sessionTotalScore, quiz?.status]);
+  const displayScore = quiz?.sessionTotalScore ?? 0;
 
   const isShowingResults = quiz?.status === "showing_results";
   const currentQuestion = quiz?.questions?.length > 0 ? quiz.questions[0] : null;
@@ -115,32 +105,29 @@ export default function StudentQuizPage() {
     });
 
     newSocket.on("connect", () => {
-      newSocket.emit("join_quiz", { quizId: quiz.id });
+      newSocket.emit("join_quiz", { quizId: quiz.id, userId });
       // Refetch the latest state from the DB just in case we missed a broadcast while offline
       queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
     });
 
     newSocket.on("quiz_state_updated", (payload?: any) => {
       if (payload) {
-        if (payload.status === "showing_results") {
-          // For showing_results: do a real DB fetch to get the true score + leaderboard
-          queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
-        } else {
-          // For all other transitions: patch cache instantly for 0ms perceived latency
-          queryClient.setQueryData(["quiz", params.id], (oldData: any) => {
-            if (!oldData || !oldData.quiz) return oldData;
-            return {
-              ...oldData,
-              quiz: {
-                ...oldData.quiz,
-                status: payload.status,
-                currentQuestionId: payload.currentQuestionId,
-                currentQuestionStartedAt: payload.currentQuestionStartedAt,
-                questions: payload.questions?.length ? payload.questions : oldData.quiz.questions,
-              }
-            };
-          });
-        }
+        // Patch cache instantly for 0ms perceived latency and zero DB roundtrips!
+        queryClient.setQueryData(["quiz", params.id], (oldData: any) => {
+          if (!oldData || !oldData.quiz) return oldData;
+          return {
+            ...oldData,
+            quiz: {
+              ...oldData.quiz,
+              status: payload.status,
+              currentQuestionId: payload.currentQuestionId ?? oldData.quiz.currentQuestionId,
+              currentQuestionStartedAt: payload.currentQuestionStartedAt ?? oldData.quiz.currentQuestionStartedAt,
+              questions: payload.questions?.length ? payload.questions : oldData.quiz.questions,
+              studentRank: payload.studentRank !== undefined ? payload.studentRank : oldData.quiz.studentRank,
+              sessionTotalScore: payload.sessionTotalScore !== undefined ? payload.sessionTotalScore : oldData.quiz.sessionTotalScore,
+            }
+          };
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: ["quiz", params.id] });
       }
@@ -180,7 +167,7 @@ export default function StudentQuizPage() {
     return () => {
       newSocket.disconnect();
     };
-  }, [quiz?.id, params.id, queryClient]);
+  }, [quiz?.id, params.id, queryClient, userId]);
 
   // Sync initial student count
   useEffect(() => {
@@ -211,19 +198,25 @@ export default function StudentQuizPage() {
 
   // Sync state from server if available (e.g. they refresh or results are shown)
   useEffect(() => {
-    if (quiz?.studentAnswer) {
-      if (quiz.studentAnswer.answer !== undefined && !selectedAnswer) {
-        setSelectedAnswer(quiz.studentAnswer.answer);
+    if (quiz) {
+      if ((quiz as any).totalVoted !== undefined) {
+        setTotalVoted((quiz as any).totalVoted);
       }
-      if (quiz.studentAnswer.isCorrect === true) {
-        setSubmittedStatus("correct");
-      } else if (quiz.studentAnswer.isCorrect === false) {
-        setSubmittedStatus("incorrect");
-      } else if (!submittedStatus) {
-        setSubmittedStatus("submitted");
+      
+      if (quiz.studentAnswer) {
+        if (quiz.studentAnswer.answer !== undefined && !selectedAnswer) {
+          setSelectedAnswer(quiz.studentAnswer.answer);
+        }
+        if (quiz.studentAnswer.isCorrect === true) {
+          setSubmittedStatus("correct");
+        } else if (quiz.studentAnswer.isCorrect === false) {
+          setSubmittedStatus("incorrect");
+        } else if (!submittedStatus) {
+          setSubmittedStatus("submitted");
+        }
       }
     }
-  }, [quiz?.studentAnswer]);
+  }, [quiz?.studentAnswer, (quiz as any)?.totalVoted]);
 
   if (isLoading) {
     return (

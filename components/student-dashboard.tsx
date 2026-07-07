@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useGetStudentHistory } from "@/hooks/tanstackQuery/quiz/use-get-student-history";
+import { useGetQuizzes } from "@/hooks/tanstackQuery/quiz/use-get-quizzes";
 import { useJoinQuiz } from "@/hooks/tanstackQuery/quiz/use-join-quiz";
 import Link from "next/link";
 import {
@@ -174,7 +174,7 @@ const studentNavItems: NavItem[] = [
 ];
 
 export default function StudentDashboard({ user }: Props) {
-  const { data: sessions, isLoading } = useGetStudentHistory();
+  const { data: sessions, isLoading } = useGetQuizzes();
   const [search, setSearch] = useState("");
   const [joinOpen, setJoinOpen] = useState(false);
 
@@ -183,7 +183,7 @@ export default function StudentDashboard({ user }: Props) {
     if (!search) return sessions;
     const q = search.toLowerCase();
     return sessions.filter(
-      (s) =>
+      (s: any) =>
         s.quizTitle.toLowerCase().includes(q) ||
         (s.quizDescription ?? "").toLowerCase().includes(q)
     );
@@ -191,7 +191,7 @@ export default function StudentDashboard({ user }: Props) {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const totalPlayed = sessions?.length ?? 0;
-  const totalScore = sessions?.reduce((a, s) => a + (s.totalScore ?? 0), 0) ?? 0;
+  const totalScore = sessions?.reduce((a: number, s: any) => a + (s.totalScore ?? 0), 0) ?? 0;
   const avgScore =
     totalPlayed > 0 ? Math.round(totalScore / totalPlayed) : 0;
 
@@ -310,7 +310,7 @@ export default function StudentDashboard({ user }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((session) => (
+                {filtered.map((session: any) => (
                   <TableRow key={session.sessionId} className="group">
                     {/* Quiz title */}
                     <TableCell>
@@ -386,22 +386,19 @@ export default function StudentDashboard({ user }: Props) {
                               View Results
                             </Link>
                           </Button>
-                        ) : session.quizStatus === "in_progress" ||
-                          session.quizStatus === "waiting" ? (
+                        ) : session.quizStatus !== "completed" ? (
                           <Button
                             asChild
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1.5 text-xs"
+                            className="h-8 gap-1.5 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                           >
                             <Link href={`/quiz/${session.quizId}`}>
                               <Zap className="h-3.5 w-3.5" />
-                              Rejoin
+                              Rejoin Quiz
                             </Link>
                           </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>

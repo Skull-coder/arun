@@ -40,12 +40,16 @@ app.prepare().then(() => {
     console.log("🔌 Client connected:", socket.id);
 
     // 1. Student joins a quiz room
-    socket.on("join_quiz", ({ quizId }) => {
+    socket.on("join_quiz", ({ quizId, userId }) => {
       if (!quizId) return;
       
       const room = `quiz-${quizId}`;
       socket.join(room);
-      console.log(`🙋 Student joined room ${room}`);
+      if (userId) {
+        socket.join(`user-${userId}-quiz-${quizId}`);
+      }
+      
+      console.log(`🙋 Student joined room ${room} ${userId ? `(User: ${userId})` : ''}`);
 
       // Broadcast updated live count to everyone in the room (including host)
       const count = io.sockets.adapter.rooms.get(room)?.size || 0;

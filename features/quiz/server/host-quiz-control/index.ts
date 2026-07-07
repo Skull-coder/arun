@@ -21,9 +21,8 @@ async function broadcastState(quizId: number, status: string, questionId: number
     }
   }
 
-  let leaderboard: { studentId: string; totalScore: number; firstName: string | null; lastName: string | null; rollNumber: string | null }[] = [];
   if (status === "showing_results") {
-    const topStudents = await db
+    const leaderboard = await db
       .select({
         studentId: quizSessionsTable.studentId,
         totalScore: quizSessionsTable.totalScore,
@@ -35,18 +34,37 @@ async function broadcastState(quizId: number, status: string, questionId: number
       .innerJoin(usersTable, eq(usersTable.id, quizSessionsTable.studentId))
       .where(eq(quizSessionsTable.quizId, quizId))
       .orderBy(desc(quizSessionsTable.totalScore), asc(quizSessionsTable.totalTimeTakenMs));
-    leaderboard = topStudents;
+
+    // 1. Send the full payload with leaderboard to the host's private room
+    (global as any).io.to(`quiz-${quizId}-host`).emit("quiz_state_updated", {
+      status,
+      currentQuestionId: questionId,
+      currentQuestionStartedAt: startedAt,
+      questions: questionData ? [questionData] : [],
+      leaderboard
+    });
+
+    // 2. Loop through topStudents and emit a personalized payload to each student's private room
+    leaderboard.forEach((student, index) => {
+      (global as any).io.to(`user-${student.studentId}-quiz-${quizId}`).emit("quiz_state_updated", {
+        status,
+        currentQuestionId: questionId,
+        currentQuestionStartedAt: startedAt,
+        questions: questionData ? [questionData] : [],
+        studentRank: index + 1,
+        sessionTotalScore: student.totalScore
+      });
+    });
+  } else {
+    // For all other transitions (in_progress, waiting, etc.), broadcast to the whole public room
+    const payload = {
+      status,
+      currentQuestionId: questionId,
+      currentQuestionStartedAt: startedAt,
+      questions: questionData ? [questionData] : [],
+    };
+    (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated", payload);
   }
-
-  const payload = {
-    status,
-    currentQuestionId: questionId,
-    currentQuestionStartedAt: startedAt,
-    questions: questionData ? [questionData] : [],
-    leaderboard: status === "showing_results" ? leaderboard : undefined,
-  };
-
-  (global as any).io.to(`quiz-${quizId}`).emit("quiz_state_updated", payload);
 }
 
 export async function hostQuizControl(quizId: number, userId: string, data: HostQuizControlInput) {

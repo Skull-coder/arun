@@ -1,4 +1,4 @@
-import { eq, desc, asc, count, inArray, sql, and } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, sql, and, gt, lt, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable, quizSessionsTable, studentAnswersTable } from "@/features/database/schema";
 
@@ -43,33 +43,23 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
     .limit(limit)
     .offset(offset);
 
-  const result = quizzes.map(q => ({
-    ...q,
-    questionCount: q.totalQuestions || 0
-  }));
-
-  return { quizzes: result };
+  return { quizzes };
 }
 
 async function getStudentQuizzes(userId: string, limit: number, offset: number) {
   const sessions = await db
     .select({
-      id: quizSessionsTable.id,
-      status: quizSessionsTable.status,
+      sessionId: quizSessionsTable.id,
+      quizId: quizSessionsTable.quizId,
       totalScore: quizSessionsTable.totalScore,
+      totalTimeTakenMs: quizSessionsTable.totalTimeTakenMs,
       startedAt: quizSessionsTable.startedAt,
       submittedAt: quizSessionsTable.submittedAt,
-      quiz: {
-        id: quizzesTable.id,
-        title: quizzesTable.title,
-        description: quizzesTable.description,
-        creatorId: quizzesTable.creatorId,
-        joinCode: quizzesTable.joinCode,
-        isPublished: quizzesTable.isPublished,
-        createdAt: quizzesTable.createdAt,
-        updatedAt: quizzesTable.updatedAt,
-        totalQuestions: quizzesTable.totalQuestions,
-      },
+      quizTitle: quizzesTable.title,
+      quizDescription: quizzesTable.description,
+      quizStatus: quizzesTable.status,
+      quizTotalMarks: quizzesTable.totalMarks,
+      quizTotalQuestions: quizzesTable.totalQuestions,
     })
     .from(quizSessionsTable)
     .innerJoin(quizzesTable, eq(quizSessionsTable.quizId, quizzesTable.id))
@@ -78,19 +68,7 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
     .limit(limit)
     .offset(offset);
 
-  const result = sessions.map(({ quiz, ...session }) => ({
-    session: {
-      id: session.id,
-      status: session.status,
-      totalScore: session.totalScore,
-      startedAt: session.startedAt,
-      submittedAt: session.submittedAt,
-    },
-    ...quiz,
-    questionCount: quiz.totalQuestions || 0,
-  }));
-
-  return { quizzes: result };
+  return { quizzes: sessions };
 }
 
 export async function getQuiz(quizId: number, userId: string) {
@@ -141,7 +119,7 @@ export async function getQuiz(quizId: number, userId: string) {
 
   // Check if student has joined
   const [session] = await db
-    .select({ id: quizSessionsTable.id, totalScore: quizSessionsTable.totalScore })
+    .select({ id: quizSessionsTable.id, totalScore: quizSessionsTable.totalScore, totalTimeTakenMs: quizSessionsTable.totalTimeTakenMs })
     .from(quizSessionsTable)
     .where(
       and(
@@ -207,24 +185,35 @@ export async function getQuiz(quizId: number, userId: string) {
             delete (studentAnswer as any).score;
          }
       }
+
+      // Fetch the total number of students who have voted on this question so far
+      const [voteCount] = await db
+        .select({ count: count() })
+        .from(studentAnswersTable)
+        .where(eq(studentAnswersTable.questionId, activeQuestion.id));
+        
+      (quizRow as any).totalVoted = voteCount.count;
     }
   }
-  let leaderboard: { studentId: string; totalScore: number; firstName: string | null; lastName: string | null; rollNumber: string | null }[] | undefined = undefined;
-  if (quizRow.status === "showing_results") {
-    const topStudents = await db
-      .select({
-        studentId: quizSessionsTable.studentId,
-        totalScore: quizSessionsTable.totalScore,
-        firstName: usersTable.firstName,
-        lastName: usersTable.lastName,
-        rollNumber: usersTable.rollNumber,
-      })
+  let studentRank: number | undefined = undefined;
+  if (quizRow.status !== "draft" && quizRow.status !== "waiting") {
+    const [higherRanked] = await db
+      .select({ count: count() })
       .from(quizSessionsTable)
-      .innerJoin(usersTable, eq(usersTable.id, quizSessionsTable.studentId))
-      .where(eq(quizSessionsTable.quizId, quizId))
-      .orderBy(desc(quizSessionsTable.totalScore), asc(quizSessionsTable.totalTimeTakenMs));
-    leaderboard = topStudents;
+      .where(
+        and(
+          eq(quizSessionsTable.quizId, quizId),
+          or(
+            gt(quizSessionsTable.totalScore, session.totalScore),
+            and(
+              eq(quizSessionsTable.totalScore, session.totalScore),
+              lt(quizSessionsTable.totalTimeTakenMs, session.totalTimeTakenMs)
+            )
+          )
+        )
+      );
+    studentRank = higherRanked.count + 1;
   }
 
-  return { quiz: { ...quizRow, questions, studentAnswer, sessionTotalScore: session.totalScore, leaderboard } };
+  return { quiz: { ...quizRow, questions, studentAnswer, sessionTotalScore: session.totalScore, studentRank } };
 }
