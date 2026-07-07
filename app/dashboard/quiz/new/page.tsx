@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useCreateQuiz } from "@/hooks/tanstackQuery/quiz/use-create-quiz";
+import { useGetQuiz } from "@/hooks/tanstackQuery/quiz/use-get-quiz";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -454,12 +455,27 @@ function SequenceEditor({
 
 export default function NewQuizPage() {
   const router = useRouter();
-  const { mutate: createQuiz, isPending } = useCreateQuiz();
+  const searchParams = useSearchParams();
+  const cloneId = searchParams.get("clone");
+  
+  const { mutate: createQuiz, isPending: isCreating } = useCreateQuiz();
+  const { data: cloneData, isLoading: isCloning } = useGetQuiz(cloneId || "");
 
   const [quizTitle, setQuizTitle] = useState("");
   const [quizDescription, setQuizDescription] = useState("");
   const [questions, setQuestions] = useState<LocalQuestion[]>([defaultQuestion("single_choice")]);
   const [activeIdx, setActiveIdx] = useState(0);
+
+  // Auto-populate when clone data is loaded
+  useEffect(() => {
+    if (cloneId && cloneData?.quiz) {
+      setQuizTitle(cloneData.quiz.title + " (Copy)");
+      setQuizDescription(cloneData.quiz.description || "");
+      if (cloneData.quiz.questions && cloneData.quiz.questions.length > 0) {
+        setQuestions(cloneData.quiz.questions as LocalQuestion[]);
+      }
+    }
+  }, [cloneId, cloneData]);
 
   const activeQuestion = questions[activeIdx] ?? null;
 
@@ -518,6 +534,14 @@ export default function NewQuizPage() {
     const found = QUESTION_TYPES.find((qt) => qt.value === type);
     const Icon = found?.icon ?? ChevronRight;
     return <Icon className="h-3.5 w-3.5 shrink-0" />;
+  }
+
+  if (cloneId && isCloning) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground animate-pulse">Loading quiz data...</p>
+      </div>
+    );
   }
 
   return (
@@ -625,9 +649,12 @@ export default function NewQuizPage() {
                 className="w-full bg-transparent text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none focus:outline-none"
               />
             </div>
-            <Button onClick={handleSave} disabled={isPending} className="shrink-0 mt-1">
-              {isPending ? "Saving…" : "Save Quiz"}
-            </Button>
+            {/* Save Button */}
+            <div className="shrink-0 pt-2">
+              <Button onClick={handleSave} disabled={isCreating} className="w-full sm:w-auto h-12 px-8 text-base">
+                {isCreating ? "Saving..." : cloneId ? "Save Cloned Quiz" : "Save Quiz"}
+              </Button>
+            </div>
           </div>
         </div>
 

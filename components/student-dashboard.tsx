@@ -386,22 +386,19 @@ export default function StudentDashboard({ user }: Props) {
                               View Results
                             </Link>
                           </Button>
-                        ) : session.quizStatus === "in_progress" ||
-                          session.quizStatus === "waiting" ? (
+                        ) : session.quizStatus !== "completed" ? (
                           <Button
                             asChild
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1.5 text-xs"
+                            className="h-8 gap-1.5 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                           >
                             <Link href={`/quiz/${session.quizId}`}>
                               <Zap className="h-3.5 w-3.5" />
-                              Rejoin
+                              Rejoin Quiz
                             </Link>
                           </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>

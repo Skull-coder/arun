@@ -185,10 +185,18 @@ export async function getQuiz(quizId: number, userId: string) {
             delete (studentAnswer as any).score;
          }
       }
+
+      // Fetch the total number of students who have voted on this question so far
+      const [voteCount] = await db
+        .select({ count: count() })
+        .from(studentAnswersTable)
+        .where(eq(studentAnswersTable.questionId, activeQuestion.id));
+        
+      (quizRow as any).totalVoted = voteCount.count;
     }
   }
   let studentRank: number | undefined = undefined;
-  if (quizRow.status === "showing_results") {
+  if (quizRow.status !== "draft" && quizRow.status !== "waiting") {
     const [higherRanked] = await db
       .select({ count: count() })
       .from(quizSessionsTable)

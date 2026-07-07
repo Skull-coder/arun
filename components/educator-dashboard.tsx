@@ -51,6 +51,7 @@ import {
   Clock,
   Filter,
   Trophy,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -298,12 +299,20 @@ export default function EducatorDashboard({ user }: Props) {
                     <TableCell>
                       <div className="flex items-center justify-end gap-1.5">
                         {quiz.status === "completed" ? (
-                          <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
-                            <Link href={`/quiz/${quiz.id}/results`}>
-                              <Trophy className="h-3.5 w-3.5" />
-                              View Results
-                            </Link>
-                          </Button>
+                          <>
+                            <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+                              <Link href={`/quiz/${quiz.id}/results`}>
+                                <Trophy className="h-3.5 w-3.5" />
+                                View Results
+                              </Link>
+                            </Button>
+                            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                              <Link href={`/dashboard/quiz/new?clone=${quiz.id}`}>
+                                <Copy className="h-3.5 w-3.5" />
+                                Host Again
+                              </Link>
+                            </Button>
+                          </>
                         ) : (
                           <>
                             <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">

@@ -59,15 +59,7 @@ export default function StudentQuizPage() {
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVoted, setTotalVoted] = useState(0);
 
-  // displayScore only syncs from DB when the quiz is NOT in_progress.
-  // This prevents leaking the result to the student (the DB already saves the
-  // score on submit, so showing it during in_progress would reveal correct/wrong).
-  const [displayScore, setDisplayScore] = useState(0);
-  useEffect(() => {
-    if (quiz?.sessionTotalScore === undefined) return;
-    if (quiz.status === "in_progress") return; // freeze — don't reveal score mid-question
-    setDisplayScore(quiz.sessionTotalScore ?? 0);
-  }, [quiz?.sessionTotalScore, quiz?.status]);
+  const displayScore = quiz?.sessionTotalScore ?? 0;
 
   const isShowingResults = quiz?.status === "showing_results";
   const currentQuestion = quiz?.questions?.length > 0 ? quiz.questions[0] : null;
@@ -206,19 +198,25 @@ export default function StudentQuizPage() {
 
   // Sync state from server if available (e.g. they refresh or results are shown)
   useEffect(() => {
-    if (quiz?.studentAnswer) {
-      if (quiz.studentAnswer.answer !== undefined && !selectedAnswer) {
-        setSelectedAnswer(quiz.studentAnswer.answer);
+    if (quiz) {
+      if ((quiz as any).totalVoted !== undefined) {
+        setTotalVoted((quiz as any).totalVoted);
       }
-      if (quiz.studentAnswer.isCorrect === true) {
-        setSubmittedStatus("correct");
-      } else if (quiz.studentAnswer.isCorrect === false) {
-        setSubmittedStatus("incorrect");
-      } else if (!submittedStatus) {
-        setSubmittedStatus("submitted");
+      
+      if (quiz.studentAnswer) {
+        if (quiz.studentAnswer.answer !== undefined && !selectedAnswer) {
+          setSelectedAnswer(quiz.studentAnswer.answer);
+        }
+        if (quiz.studentAnswer.isCorrect === true) {
+          setSubmittedStatus("correct");
+        } else if (quiz.studentAnswer.isCorrect === false) {
+          setSubmittedStatus("incorrect");
+        } else if (!submittedStatus) {
+          setSubmittedStatus("submitted");
+        }
       }
     }
-  }, [quiz?.studentAnswer]);
+  }, [quiz?.studentAnswer, (quiz as any)?.totalVoted]);
 
   if (isLoading) {
     return (
