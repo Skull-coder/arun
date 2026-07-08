@@ -36,10 +36,11 @@ import {
   Star,
   Zap,
   BookOpen,
-  ArrowRight,
   Timer,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StudentClassrooms } from "./student-classrooms";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -167,13 +168,17 @@ function JoinQuizDialog({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const studentNavItems: NavItem[] = [
-  { label: "My Quizzes", icon: BookOpen, active: true },
-  { label: "Classrooms", icon: GraduationCap, soon: true },
-  { label: "Performance", icon: BarChart2, soon: true },
-];
+// navItems moved inside component
 
 export default function StudentDashboard({ user }: Props) {
+  const router = useRouter();
+  
+  const studentNavItems: NavItem[] = [
+    { label: "My Quizzes", icon: BookOpen, active: true, onClick: () => router.push("/dashboard") },
+    { label: "Classrooms", icon: GraduationCap, active: false, onClick: () => router.push("/dashboard/classrooms") },
+    { label: "Performance", icon: BarChart2, soon: true },
+  ];
+
   const { data: sessions, isLoading } = useGetQuizzes();
   const [search, setSearch] = useState("");
   const [joinOpen, setJoinOpen] = useState(false);

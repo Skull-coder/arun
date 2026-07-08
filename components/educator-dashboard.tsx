@@ -54,6 +54,7 @@ import {
   Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EducatorClassrooms } from "./educator-classrooms";
 
 type Props = {
   user: {
@@ -65,11 +66,7 @@ type Props = {
   };
 };
 
-const navItems: NavItem[] = [
-  { label: "Library", icon: BookOpen, active: true },
-  { label: "Classrooms", icon: GraduationCap, soon: true },
-  { label: "Reports", icon: BarChart2, soon: true },
-];
+// Removed static navItems
 
 // Status: "draft" | "waiting" | "in_progress" | "completed"
 const STATUS_OPTIONS = [
@@ -97,11 +94,17 @@ function formatDate(d: string) {
 }
 
 export default function EducatorDashboard({ user }: Props) {
+  const router = useRouter();
+  const navItems: NavItem[] = [
+    { label: "Library", icon: BookOpen, active: true, onClick: () => router.push("/dashboard") },
+    { label: "Classrooms", icon: GraduationCap, active: false, onClick: () => router.push("/dashboard/classrooms") },
+    { label: "Reports", icon: BarChart2, soon: true },
+  ];
+
   const { data: quizzes, isLoading } = useGetQuizzes();
   const { mutate: deleteQuiz, isPending: isDeleting } = useDeleteQuiz();
 
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
