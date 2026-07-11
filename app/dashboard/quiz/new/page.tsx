@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useCreateQuiz } from "@/hooks/tanstackQuery/quiz/use-create-quiz";
@@ -453,7 +453,7 @@ function SequenceEditor({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function NewQuizPage() {
+function NewQuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cloneId = searchParams.get("clone");
@@ -799,6 +799,14 @@ export default function NewQuizPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function NewQuizPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><p className="animate-pulse text-muted-foreground">Loading...</p></div>}>
+      <NewQuizContent />
+    </Suspense>
   );
 }
 

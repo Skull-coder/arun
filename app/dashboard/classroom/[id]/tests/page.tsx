@@ -4,10 +4,9 @@ import { db } from "@/lib/db";
 import { usersTable } from "@/features/database/schema";
 import { eq } from "drizzle-orm";
 import { ClassroomLayoutClient } from "@/components/classroom-layout-client";
-import { EducatorStudentsClient } from "@/components/educator-students-client";
-import { StudentClassroomClient } from "@/components/student-classroom-client";
+import { EducatorTestsTab } from "@/components/educator-tests-tab";
 
-export default async function ClassroomPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClassroomTestsPage({ params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth();
   if (!userId) {
     redirect("/sign-in");
@@ -22,20 +21,16 @@ export default async function ClassroomPage({ params }: { params: Promise<{ id: 
     .where(eq(usersTable.id, userId))
     .limit(1);
 
-  if (!user || !user.role) {
-    redirect("/onboarding");
+  if (!user || user.role !== "educator") {
+    redirect("/dashboard");
   }
 
   const { id } = await params;
   const classroomId = parseInt(id, 10);
 
-  if (user.role === "educator") {
-    return (
-      <ClassroomLayoutClient classroomId={classroomId} activeTab="students">
-        <EducatorStudentsClient classroomId={classroomId} />
-      </ClassroomLayoutClient>
-    );
-  }
-
-  return <StudentClassroomClient classroomId={classroomId} />;
+  return (
+    <ClassroomLayoutClient classroomId={classroomId} activeTab="tests">
+      <EducatorTestsTab classroomId={classroomId} />
+    </ClassroomLayoutClient>
+  );
 }
