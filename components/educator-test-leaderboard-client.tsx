@@ -29,6 +29,31 @@ export function EducatorTestLeaderboardClient({ classroomId, testId }: { classro
     );
   });
 
+  const exportToCSV = () => {
+    if (!participants || participants.length === 0) return;
+    
+    // Headers: Roll Number, Name, Marks
+    const headers = ["Roll Number", "Name", "Marks"];
+    
+    // Rows
+    const rows = participants.map((p: any) => {
+      const rollNumber = p.rollNumber || "";
+      const name = `${p.firstName} ${p.lastName}`.trim();
+      const marks = p.totalScore;
+      return `"${rollNumber}","${name}","${marks}"`;
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${test?.title || 'test'}_results.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -41,7 +66,7 @@ export function EducatorTestLeaderboardClient({ classroomId, testId }: { classro
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto py-8 px-4">
+    <div className="space-y-6 w-[80%] mx-auto py-8 px-4">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="outline" size="icon" asChild className="shrink-0">
           <Link href={`/dashboard/classroom/${classroomId}`}>
@@ -67,8 +92,13 @@ export function EducatorTestLeaderboardClient({ classroomId, testId }: { classro
             className="pl-9 bg-card"
           />
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground border border-border bg-card px-4 py-2 rounded-lg">
-          <Users className="h-4 w-4" /> {participants.length} Participants
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground border border-border bg-card px-4 py-2 rounded-lg">
+            <Users className="h-4 w-4" /> {participants.length} Participants
+          </div>
+          <Button variant="default" onClick={exportToCSV} disabled={participants.length === 0}>
+            Export CSV
+          </Button>
         </div>
       </div>
 

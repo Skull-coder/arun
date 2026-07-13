@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, usersTable, testsTable, testQuestionsTable } from "@/features/database/schema";
 import { CreateTestInput } from "../../validations/createTest";
+import { pushUpdate } from "@/features/update/server/push-update";
 
 export async function createTest(userId: string, data: CreateTestInput) {
   // 1. Verify user is an educator
@@ -31,7 +32,7 @@ export async function createTest(userId: string, data: CreateTestInput) {
   }
 
   try {
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       let totalMarks = 0;
       let totalQuestions = 0;
       
@@ -75,6 +76,19 @@ export async function createTest(userId: string, data: CreateTestInput) {
       
       return { test, status: 201 };
     });
+
+    // 5. Post automated update if the test was scheduled
+    if (result.status === 201 && result.test?.scheduledAt) {
+      await pushUpdate({
+        classroomId: data.classroomId,
+        content: `A new test "${result.test.title}" has been scheduled for ${new Date(result.test.scheduledAt).toLocaleString()}.`,
+        isSystem: true,
+        referenceType: "test",
+        referenceId: result.test.id,
+      });
+    }
+
+    return result;
   } catch (error) {
     console.error("Test creation error:", error);
     return { error: "Failed to create test", status: 500 };

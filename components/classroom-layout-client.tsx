@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useGetUnreadUpdatesCount } from "@/hooks/tanstackQuery/update/use-get-unread-count";
 
 type Tab = "students" | "tests" | "assignments" | "updates" | "settings";
 
@@ -24,6 +25,7 @@ export function ClassroomLayoutClient({
   children: React.ReactNode;
 }) {
   const { data, isLoading } = useGetClassroom(classroomId);
+  const { data: unreadCount = 0 } = useGetUnreadUpdatesCount(classroomId);
   const [collapsed, setCollapsed] = useState(false);
 
   if (isLoading) {
@@ -57,13 +59,14 @@ export function ClassroomLayoutClient({
     icon: React.ElementType;
     href?: string;
     soon?: boolean;
+    badgeCount?: number;
   };
 
   const navItems: NavItem[] = [
     { id: "students", label: "Students", icon: Users, href: `/dashboard/classroom/${classroomId}` },
     { id: "tests", label: "Tests", icon: ClipboardList, href: `/dashboard/classroom/${classroomId}/tests` },
     { id: "assignments", label: "Assignments", icon: BookOpenCheck, soon: true },
-    { id: "updates", label: "Updates", icon: Bell, soon: true },
+    { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount, href: `/dashboard/classroom/${classroomId}/updates` },
     { id: "settings", label: "Settings", icon: Settings, href: `/dashboard/classroom/${classroomId}/settings` },
   ];
 
@@ -97,7 +100,14 @@ export function ClassroomLayoutClient({
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="flex-1 text-left">{item.label}</span>
+                  <span className="flex-1 text-left flex items-center justify-between">
+                    {item.label}
+                    {item.badgeCount ? (
+                      <Badge className="ml-2 px-1.5 py-0 min-w-[20px] justify-center text-[10px] bg-yellow-400 text-yellow-950 hover:bg-yellow-500 border-none font-bold shadow-sm">
+                        {item.badgeCount}
+                      </Badge>
+                    ) : null}
+                  </span>
                   {item.soon && (
                     <Badge variant="secondary" className="text-[10px] px-1 py-0 leading-tight">
                       Soon

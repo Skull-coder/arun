@@ -17,11 +17,14 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { StudentTestsTab } from "@/components/student-tests-tab";
+import { StudentUpdatesTab } from "@/components/updates/student-updates-tab";
+import { useGetUnreadUpdatesCount } from "@/hooks/tanstackQuery/update/use-get-unread-count";
 
 type Tab = "tests" | "assignments" | "updates" | "people";
 
 export function StudentClassroomClient({ classroomId }: { classroomId: number }) {
   const { data, isLoading, error } = useGetClassroom(classroomId);
+  const { data: unreadCount = 0 } = useGetUnreadUpdatesCount(classroomId);
 
   const [activeTab, setActiveTab] = useState<Tab>("tests");
   const [collapsed, setCollapsed] = useState(false);
@@ -60,12 +63,13 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
     label: string;
     icon: React.ElementType;
     soon?: boolean;
+    badgeCount?: number;
   };
 
   const navItems: NavItem[] = [
     { id: "tests", label: "Tests", icon: ClipboardList },
     { id: "assignments", label: "Assignments", icon: BookOpenCheck, soon: true },
-    { id: "updates", label: "Updates", icon: Bell, soon: true },
+    { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount },
     { id: "people", label: "People", icon: Users, soon: true },
   ];
 
@@ -99,7 +103,14 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="flex-1 text-left">{item.label}</span>
+                  <span className="flex-1 text-left flex items-center justify-between">
+                    {item.label}
+                    {item.badgeCount ? (
+                      <Badge className="ml-2 px-1.5 py-0 min-w-[20px] justify-center text-[10px] bg-yellow-400 text-yellow-950 hover:bg-yellow-500 border-none font-bold shadow-sm">
+                        {item.badgeCount}
+                      </Badge>
+                    ) : null}
+                  </span>
                   {item.soon && (
                     <Badge variant="secondary" className="text-[10px] px-1 py-0 leading-tight">
                       Soon
@@ -136,6 +147,9 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
         <div className="flex-1 overflow-auto p-8">
           {activeTab === "tests" && (
             <StudentTestsTab classroomId={classroomId} />
+          )}
+          {activeTab === "updates" && (
+            <StudentUpdatesTab classroomId={classroomId} />
           )}
         </div>
       </main>

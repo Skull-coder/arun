@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { classroomsTable, usersTable, testsTable, testQuestionsTable } from "@/features/database/schema";
 import { UpdateTestInput } from "../../validations/updateTest";
 import { getTest } from "../get-test";
+import { pushUpdate } from "@/features/update/server/push-update";
 
 export async function updateTest(userId: string, data: UpdateTestInput) {
   // 1. Verify user is an educator
@@ -20,6 +21,7 @@ export async function updateTest(userId: string, data: UpdateTestInput) {
   const [test] = await db
     .select({ 
       classroomId: testsTable.classroomId,
+      title: testsTable.title,
       scheduledAt: testsTable.scheduledAt,
       endAt: testsTable.endAt,
       durationMinutes: testsTable.durationMinutes,
@@ -154,7 +156,6 @@ export async function updateTest(userId: string, data: UpdateTestInput) {
 
       // Time overrides
       const newDurationMinutes = data.durationMinutes !== undefined ? data.durationMinutes : test.durationMinutes;
-      const newScheduledAt = data.scheduledAt !== undefined ? data.scheduledAt : test.scheduledAt;
 
       if (data.status === "completed") {
         updatePayload.endAt = new Date();
@@ -179,12 +180,36 @@ export async function updateTest(userId: string, data: UpdateTestInput) {
           .where(eq(testsTable.id, data.id));
       }
     });
+
+    // 5. Post automated updates if the test was scheduled or rescheduled
+    if (data.scheduledAt) {
+      if (test.scheduledAt === null) {
+        // Was draft, now scheduled
+        await pushUpdate({
+          classroomId: test.classroomId,
+          content: `A new test "${data.title || test.title}" has been scheduled for ${new Date(data.scheduledAt).toLocaleString()}.`,
+          isSystem: true,
+          referenceType: "test",
+          referenceId: data.id,
+        });
+      } else if (data.scheduledAt.getTime() !== test.scheduledAt.getTime()) {
+        // Was scheduled, now rescheduled
+        await pushUpdate({
+          classroomId: test.classroomId,
+          content: `The test "${data.title || test.title}" has been rescheduled to ${new Date(data.scheduledAt).toLocaleString()}.`,
+          isSystem: true,
+          referenceType: "test",
+          referenceId: data.id,
+        });
+      }
+    }
+
   } catch (error) {
     console.error("Test update error:", error);
     return { error: "Failed to update test", status: 500 };
   }
 
-  // 5. Fetch the fresh test using the existing getTest logic
+  // 6. Fetch the fresh test using the existing getTest logic
   const result = await getTest(userId, data.id);
   if (result.error) {
     return { error: "Test updated but could not fetch result", status: 200 };
