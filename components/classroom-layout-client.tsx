@@ -65,7 +65,7 @@ export function ClassroomLayoutClient({
   const navItems: NavItem[] = [
     { id: "students", label: "Students", icon: Users, href: `/dashboard/classroom/${classroomId}` },
     { id: "tests", label: "Tests", icon: ClipboardList, href: `/dashboard/classroom/${classroomId}/tests` },
-    { id: "assignments", label: "Assignments", icon: BookOpenCheck, soon: true },
+    { id: "assignments", label: "Assignments", icon: BookOpenCheck, href: `/dashboard/classroom/${classroomId}/assignments` },
     { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount, href: `/dashboard/classroom/${classroomId}/updates` },
     { id: "settings", label: "Settings", icon: Settings, href: `/dashboard/classroom/${classroomId}/settings` },
   ];

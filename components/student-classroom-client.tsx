@@ -18,6 +18,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { StudentTestsTab } from "@/components/student-tests-tab";
 import { StudentUpdatesTab } from "@/components/updates/student-updates-tab";
+import { StudentAssignmentsTab } from "@/components/assignments/student-assignments-tab";
 import { useGetUnreadUpdatesCount } from "@/hooks/tanstackQuery/update/use-get-unread-count";
 
 type Tab = "tests" | "assignments" | "updates" | "people";
@@ -68,7 +69,7 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
 
   const navItems: NavItem[] = [
     { id: "tests", label: "Tests", icon: ClipboardList },
-    { id: "assignments", label: "Assignments", icon: BookOpenCheck, soon: true },
+    { id: "assignments", label: "Assignments", icon: BookOpenCheck },
     { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount },
     { id: "people", label: "People", icon: Users, soon: true },
   ];
@@ -147,6 +148,9 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
         <div className="flex-1 overflow-auto p-8">
           {activeTab === "tests" && (
             <StudentTestsTab classroomId={classroomId} />
+          )}
+          {activeTab === "assignments" && (
+            <StudentAssignmentsTab classroomId={classroomId} />
           )}
           {activeTab === "updates" && (
             <StudentUpdatesTab classroomId={classroomId} />

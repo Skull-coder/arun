@@ -4,7 +4,7 @@ import { useRef, useEffect } from "react";
 import { useGetUpdates } from "@/hooks/tanstackQuery/update/use-get-updates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Bot, BellRing, Sparkles } from "lucide-react";
+import { Bot, Sparkles, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -18,16 +18,16 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
   // Auto-scroll to bottom on load
   useEffect(() => {
     if (data?.updates) {
-      endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+      endOfMessagesRef.current?.scrollIntoView({ behavior: "instant" });
     }
   }, [data?.updates?.length]);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full space-y-4 max-w-4xl mx-auto">
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-xl" />
+      <div className="space-y-6 max-w-4xl mx-auto h-full flex flex-col justify-end">
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
     );
   }
@@ -44,35 +44,36 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
   let dividerRendered = false;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-5xl mx-auto bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-140px)] max-w-4xl mx-auto">
       
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center gap-3 shadow-sm z-10">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <BellRing className="h-5 w-5 text-primary" />
-        </div>
+      <div className="flex items-center justify-between pb-6">
         <div>
-          <h3 className="font-semibold text-lg leading-none">Updates & Announcements</h3>
-          <p className="text-xs text-muted-foreground mt-1">Stay up to date with your classroom.</p>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Megaphone className="h-5 w-5 text-primary" /> Updates & Announcements
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Stay up to date with your classroom.</p>
         </div>
       </div>
 
-      {/* Messages Feed */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-muted/10 relative">
+      {/* Feed */}
+      <div className="flex-1 space-y-6 pb-12">
         {sortedUpdates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-2">
-              <Sparkles className="h-6 w-6 opacity-50" />
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-4 rounded-2xl border border-dashed border-border">
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+              <Sparkles className="h-7 w-7 text-muted-foreground/50" />
             </div>
-            <p>No announcements yet.</p>
-            <p className="text-sm">You are all caught up!</p>
+            <div>
+              <p className="font-semibold">No announcements yet</p>
+              <p className="text-sm text-muted-foreground mt-1">You are all caught up!</p>
+            </div>
           </div>
         ) : (
           sortedUpdates.map((u) => {
             const createdAtTime = new Date(u.createdAt).getTime();
             const isNew = createdAtTime > oldLastReadAt;
 
-            // Render the "New Updates" divider right before the first new message
+            // Render the "New Updates" divider right before the first new message (going downwards)
             let renderDivider = false;
             if (isNew && !dividerRendered && oldLastReadAt > 0) {
               dividerRendered = true;
@@ -83,59 +84,75 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
               <div key={u.id}>
                 {renderDivider && (
                   <div className="flex items-center justify-center my-8">
-                    <div className="h-px bg-yellow-500/50 flex-1 max-w-[100px]"></div>
+                    <div className="h-px bg-yellow-500/50 flex-1"></div>
                     <span className="mx-4 text-xs font-bold text-yellow-600 bg-yellow-500/10 px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
                       New Updates
                     </span>
-                    <div className="h-px bg-yellow-500/50 flex-1 max-w-[100px]"></div>
+                    <div className="h-px bg-yellow-500/50 flex-1"></div>
                   </div>
                 )}
 
                 {u.isSystem ? (
-                  <div className="flex justify-center my-6">
-                    <div className="bg-primary/5 border border-primary/20 text-primary-foreground rounded-2xl p-5 flex flex-col items-center gap-3 w-full max-w-2xl shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <Bot className="h-5 w-5 text-primary shrink-0" />
-                        <span className="font-semibold text-primary">System Automated</span>
+                  <div className={cn(
+                    "bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-start gap-4 shadow-sm transition-all max-w-3xl mx-auto w-full",
+                    isNew ? "ring-2 ring-primary/20" : ""
+                  )}>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Bot className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-primary">System Automated</span>
+                          {isNew && <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">New</span>}
+                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {format(new Date(u.createdAt), "MMM d, p")}
+                        </span>
                       </div>
-                      <p className="text-foreground/90 text-[15px] text-center leading-relaxed font-medium">
+                      <p className="text-[15px] leading-relaxed text-foreground/90 mt-2 text-center">
                         {u.content}
                       </p>
-                      <div className="flex items-center justify-between w-full mt-2">
-                        <span className="text-muted-foreground text-xs font-medium">
-                          {format(new Date(u.createdAt), "MMM d, yyyy - p")}
-                        </span>
-                        {u.referenceType === "test" && u.referenceId && (
-                          <Button asChild size="sm" variant="default" className="h-8 shadow-sm">
+                      {u.referenceType === "test" && u.referenceId && (
+                        <div className="flex justify-center mt-4">
+                          <Button asChild size="sm" variant="default" className="shadow-sm">
                             <Link href={`/dashboard/classroom/${classroomId}/test/${u.referenceId}/lobby`}>
                               Go to Test
                             </Link>
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
-                  <div className="flex gap-4 max-w-3xl">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0 shadow-md flex items-center justify-center text-white font-bold text-sm">
-                      ED
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm">Educator</span>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(u.createdAt), "MMM d, p")}
-                        </span>
-                        {u.isEdited && (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">
-                            Edited
-                          </span>
-                        )}
+                  <div className={cn(
+                    "bg-card border border-border rounded-2xl p-6 shadow-sm transition-all",
+                    isNew ? "ring-2 ring-primary/20" : ""
+                  )}>
+                    <div className="flex gap-4">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0 flex items-center justify-center text-white font-bold text-sm">
+                        ED
                       </div>
                       
-                      <div className="bg-background border border-border rounded-2xl rounded-tl-sm px-5 py-3.5 shadow-sm text-[15px] whitespace-pre-wrap flex-1 hover:border-primary/30 transition-colors">
-                        {u.content}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">Educator</span>
+                              {isNew && <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">New</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              {format(new Date(u.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                              {u.isEdited && (
+                                <span className="bg-muted px-1.5 py-0.5 rounded-sm">Edited</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <p className="text-[15px] whitespace-pre-wrap leading-relaxed mt-2">
+                          {u.content}
+                        </p>
                       </div>
                     </div>
                   </div>

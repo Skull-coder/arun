@@ -10,6 +10,12 @@ const envSchema = z.object({
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
   CLERK_SECRET_KEY: z.string(),
   CLERK_WEBHOOK_SIGNING_SECRET: z.string(),
+
+  // Cloudflare R2
+  R2_ACCOUNT_ID: z.string(),
+  R2_ACCESS_KEY_ID: z.string(),
+  R2_SECRET_ACCESS_KEY: z.string(),
+  R2_BUCKET_NAME: z.string(),
 });
 
 const parsed = envSchema.safeParse(process.env);
