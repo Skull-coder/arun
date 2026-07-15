@@ -2,25 +2,51 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { usersTable } from "@/features/database/schema";
 import { UpdateRoleInput } from "../../validations/updateRole";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export async function updateUserRole(userId: string, data: UpdateRoleInput) {
   const { role } = data;
 
   // First, verify the user exists in our database
-  const [existingUser] = await db
+  let [existingUser] = await db
     .select({ id: usersTable.id })
     .from(usersTable)
     .where(eq(usersTable.id, userId))
     .limit(1);
 
+  const updateData: any = { role };
+  if (data.rollNumber !== undefined) {
+    updateData.rollNumber = data.rollNumber;
+  }
+
   if (!existingUser) {
-    return { error: "User not found in database", status: 404 };
+    try {
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(userId);
+      const email = clerkUser.emailAddresses[0]?.emailAddress;
+      
+      if (!email) {
+        return { error: "No email associated with this Clerk account", status: 400 };
+      }
+      
+      await db.insert(usersTable).values({
+        id: userId,
+        email: email,
+        firstName: clerkUser.firstName || "",
+        lastName: clerkUser.lastName || "",
+        ...updateData
+      });
+      return { success: true, role, status: 200 };
+    } catch (e) {
+      console.error("Clerk user fetch failed:", e);
+      return { error: "User not found in database or Clerk", status: 404 };
+    }
   }
 
   // Update their role
   await db
     .update(usersTable)
-    .set({ role })
+    .set(updateData)
     .where(eq(usersTable.id, userId));
 
   return { success: true, role, status: 200 };

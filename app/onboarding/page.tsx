@@ -13,6 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GraduationCap, Presentation, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 const roles = [
@@ -40,13 +42,18 @@ const roles = [
 
 export default function OnboardingPage() {
   const [selectedRole, setSelectedRole] = useState<"student" | "educator" | null>(null);
+  const [rollNumber, setRollNumber] = useState("");
   const { mutate: updateRole, isPending } = useUpdateRole();
   const router = useRouter();
 
   const handleConfirm = () => {
     if (!selectedRole) return;
+    if (selectedRole === "student" && !rollNumber.trim()) {
+      toast.error("Please enter your Roll Number.");
+      return;
+    }
     updateRole(
-      { role: selectedRole },
+      { role: selectedRole, rollNumber: selectedRole === "student" ? rollNumber.trim() : undefined },
       {
         onSuccess: () => {
           toast.success(`Welcome! Your account is set up as ${selectedRole}.`);
@@ -125,9 +132,27 @@ export default function OnboardingPage() {
           })}
         </div>
 
+        {selectedRole === "student" && (
+          <div className="space-y-3 bg-muted/30 p-6 rounded-2xl border border-border">
+            <Label htmlFor="rollNumber" className="text-base font-semibold">
+              Roll Number / Student ID <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="rollNumber"
+              placeholder="e.g. CS-2023-045"
+              value={rollNumber}
+              onChange={(e) => setRollNumber(e.target.value)}
+              className="h-12 text-base"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your roll number is required to join classrooms and submit assignments.
+            </p>
+          </div>
+        )}
+
         <Button
           onClick={handleConfirm}
-          disabled={!selectedRole || isPending}
+          disabled={!selectedRole || isPending || (selectedRole === "student" && !rollNumber.trim())}
           className="w-full h-12 text-base font-semibold"
           size="lg"
         >

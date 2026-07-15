@@ -69,7 +69,7 @@ export default function QuizResultsPage() {
     <div className="flex h-screen flex-col bg-background">
       {/* HEADER */}
       <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-card px-6 sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => router.push(isCreator ? `/dashboard/quiz/${quiz.id}` : "/dashboard")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
