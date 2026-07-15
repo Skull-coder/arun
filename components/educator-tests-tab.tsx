@@ -150,18 +150,28 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px] h-9">
-              <SelectValue placeholder="Filter Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Tests</SelectItem>
-              <SelectItem value="draft">Drafts</SelectItem>
-              <SelectItem value="scheduled">Upcoming</SelectItem>
-              <SelectItem value="ongoing">Live</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            {[
+              { key: "all", label: "All Tests" },
+              { key: "draft", label: "Drafts" },
+              { key: "scheduled", label: "Upcoming" },
+              { key: "ongoing", label: "Live" },
+              { key: "completed", label: "Completed" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                  statusFilter === f.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
           <Button asChild size="sm" className="h-9">
             <Link href={`/dashboard/classroom/${classroomId}/test/new`}>
               <Plus className="h-4 w-4 mr-2" />
@@ -238,6 +248,13 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {filteredTests?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                    No tests match your filter.
+                  </TableCell>
+                </TableRow>
+              )}
               {filteredTests?.map((test: any) => {
                 const displayStatus = test.status;
                 const isScheduled = displayStatus === "scheduled";

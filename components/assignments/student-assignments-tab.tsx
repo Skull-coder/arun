@@ -43,6 +43,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Assignment = {
@@ -157,9 +158,11 @@ function AssignmentCard({ assignment, classroomId, filter }: { assignment: Assig
           setSelectedFile(null);
           setPreviewUrl(null);
           setUploadProgress(0);
+          toast.success("Assignment submitted successfully!");
         },
-        onError: () => {
+        onError: (err: Error) => {
           setUploadProgress(0);
+          toast.error(err.message || "Failed to submit assignment.");
         }
       }
     );
@@ -168,7 +171,15 @@ function AssignmentCard({ assignment, classroomId, filter }: { assignment: Assig
   const handleUnsubmit = () => {
     unsubmitAssignment.mutate(
       { classroomId, assignmentId: assignment.id },
-      { onSuccess: () => setUnsubmitDialog(false) }
+      { 
+        onSuccess: () => {
+          setUnsubmitDialog(false);
+          toast.success("Assignment unsubmitted.");
+        },
+        onError: (err: Error) => {
+          toast.error(err.message || "Failed to unsubmit.");
+        }
+      }
     );
   };
 

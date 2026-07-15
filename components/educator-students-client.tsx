@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserCheck, UserX, Trash2, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function EducatorStudentsClient({ classroomId }: { classroomId: number }) {
   const { data, isLoading } = useGetClassroom(classroomId);
@@ -87,16 +88,26 @@ export function EducatorStudentsClient({ classroomId }: { classroomId: number })
           />
         </div>
         <Separator orientation="vertical" className="h-6" />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-[180px] border-none shadow-none focus:ring-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Students</SelectItem>
-            <SelectItem value="approved">Approved Only</SelectItem>
-            <SelectItem value="pending">Pending Only</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          {[
+            { key: "all", label: "All Students" },
+            { key: "approved", label: "Approved Only" },
+            { key: "pending", label: "Pending Only" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                statusFilter === f.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:border-primary/40"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         {(searchQuery || statusFilter !== "all") && (
           <>
             <Separator orientation="vertical" className="h-6" />

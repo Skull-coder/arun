@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Submission = {
@@ -107,7 +108,13 @@ function FeedbackPanel({
         status,
         feedback: feedback.trim() || undefined,
       },
-      { onSuccess: () => setFeedback("") }
+      { 
+        onSuccess: () => {
+          setFeedback("");
+          toast.success(`Submission ${status === "accepted" ? "accepted" : "returned"}.`);
+        },
+        onError: (err: Error) => toast.error(err.message || "Failed to evaluate.")
+      }
     );
   };
 

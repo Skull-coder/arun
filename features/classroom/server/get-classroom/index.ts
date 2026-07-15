@@ -68,16 +68,39 @@ export async function getClassroom(classroomId: number, userId: string) {
     const [educator] = await db
       .select({
         firstName: usersTable.firstName,
-        lastName: usersTable.lastName,
-        email: usersTable.email
+        lastName: usersTable.lastName
       })
       .from(usersTable)
       .where(eq(usersTable.id, classroom.educatorId))
       .limit(1);
 
+    // Fetch approved members (classmates)
+    const members = await db
+      .select({
+        id: classroomMembersTable.id,
+        status: classroomMembersTable.status,
+        joinedAt: classroomMembersTable.joinedAt,
+        student: {
+          id: usersTable.id,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          email: usersTable.email,
+          rollNumber: usersTable.rollNumber
+        }
+      })
+      .from(classroomMembersTable)
+      .innerJoin(usersTable, eq(classroomMembersTable.studentId, usersTable.id))
+      .where(
+        and(
+          eq(classroomMembersTable.classroomId, classroomId),
+          eq(classroomMembersTable.status, "approved")
+        )
+      );
+
     return { 
       classroom, 
       educator,
+      members,
       membershipStatus: membership.status, 
       status: 200 
     };

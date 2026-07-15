@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ClipboardList, Plus, MoreVertical, Edit2, Trash2, Users, CalendarDays, Loader2, ArrowRight } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
+import { toast } from "sonner";
 import Link from "next/link";
 
 type Assignment = {
@@ -89,10 +90,22 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
     if (editingAssignment) {
       updateAssignment.mutate(
         { ...payload, assignmentId: editingAssignment.id },
-        { onSuccess: () => setShowForm(false) }
+        { 
+          onSuccess: () => {
+            setShowForm(false);
+            toast.success("Assignment updated.");
+          },
+          onError: (err: Error) => toast.error(err.message || "Failed to update.")
+        }
       );
     } else {
-      createAssignment.mutate(payload, { onSuccess: () => setShowForm(false) });
+      createAssignment.mutate(payload, { 
+        onSuccess: () => {
+          setShowForm(false);
+          toast.success("Assignment created!");
+        },
+        onError: (err: Error) => toast.error(err.message || "Failed to create.")
+      });
     }
   };
 
@@ -100,7 +113,13 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
     if (!deletingId) return;
     deleteAssignment.mutate(
       { classroomId, assignmentId: deletingId },
-      { onSuccess: () => setDeletingId(null) }
+      { 
+        onSuccess: () => {
+          setDeletingId(null);
+          toast.success("Assignment deleted.");
+        },
+        onError: (err: Error) => toast.error(err.message || "Failed to delete.")
+      }
     );
   };
 

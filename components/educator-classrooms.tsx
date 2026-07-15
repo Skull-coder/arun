@@ -66,6 +66,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export function EducatorClassrooms() {
   const { data, isLoading } = useGetClassrooms();
@@ -206,16 +207,24 @@ export function EducatorClassrooms() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="h-9 w-44 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classrooms</SelectItem>
-                <SelectItem value="has_pending">Has Pending</SelectItem>
-                <SelectItem value="no_pending">No Pending</SelectItem>
-              </SelectContent>
-            </Select>
+            {[
+              { key: "all", label: "All Classrooms" },
+              { key: "has_pending", label: "Has Pending" },
+              { key: "no_pending", label: "No Pending" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                  filter === f.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
           {(search || filter !== "all") && (
             <Button

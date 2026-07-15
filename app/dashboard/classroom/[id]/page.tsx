@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { usersTable } from "@/features/database/schema";
 import { eq } from "drizzle-orm";
 import { ClassroomLayoutClient } from "@/components/classroom-layout-client";
-import { EducatorStudentsClient } from "@/components/educator-students-client";
+import { EducatorAnalyticsTab } from "@/components/analytics/educator-analytics-tab";
 import { StudentClassroomClient } from "@/components/student-classroom-client";
 
 export default async function ClassroomPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,8 +31,8 @@ export default async function ClassroomPage({ params }: { params: Promise<{ id: 
 
   if (user.role === "educator") {
     return (
-      <ClassroomLayoutClient classroomId={classroomId} activeTab="students">
-        <EducatorStudentsClient classroomId={classroomId} />
+      <ClassroomLayoutClient classroomId={classroomId} activeTab="analytics">
+        <EducatorAnalyticsTab classroomId={classroomId} />
       </ClassroomLayoutClient>
     );
   }

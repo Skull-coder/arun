@@ -12,22 +12,25 @@ import {
   BookOpenCheck, 
   Bell, 
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BarChart
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { StudentTestsTab } from "@/components/student-tests-tab";
 import { StudentUpdatesTab } from "@/components/updates/student-updates-tab";
 import { StudentAssignmentsTab } from "@/components/assignments/student-assignments-tab";
+import { StudentAnalyticsTab } from "@/components/analytics/student-analytics-tab";
+import { StudentPeopleTab } from "@/components/people/student-people-tab";
 import { useGetUnreadUpdatesCount } from "@/hooks/tanstackQuery/update/use-get-unread-count";
 
-type Tab = "tests" | "assignments" | "updates" | "people";
+type Tab = "analytics" | "tests" | "assignments" | "updates" | "people";
 
 export function StudentClassroomClient({ classroomId }: { classroomId: number }) {
   const { data, isLoading, error } = useGetClassroom(classroomId);
   const { data: unreadCount = 0 } = useGetUnreadUpdatesCount(classroomId);
 
-  const [activeTab, setActiveTab] = useState<Tab>("tests");
+  const [activeTab, setActiveTab] = useState<Tab>("analytics");
   const [collapsed, setCollapsed] = useState(false);
 
   if (isLoading) {
@@ -68,10 +71,11 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
   };
 
   const navItems: NavItem[] = [
+    { id: "analytics", label: "Analytics", icon: BarChart },
     { id: "tests", label: "Tests", icon: ClipboardList },
     { id: "assignments", label: "Assignments", icon: BookOpenCheck },
     { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount },
-    { id: "people", label: "People", icon: Users, soon: true },
+    { id: "people", label: "People", icon: Users },
   ];
 
   return (
@@ -146,6 +150,9 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
         </header>
 
         <div className="flex-1 overflow-auto p-8">
+          {activeTab === "analytics" && (
+            <StudentAnalyticsTab classroomId={classroomId} />
+          )}
           {activeTab === "tests" && (
             <StudentTestsTab classroomId={classroomId} />
           )}
@@ -154,6 +161,9 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
           )}
           {activeTab === "updates" && (
             <StudentUpdatesTab classroomId={classroomId} />
+          )}
+          {activeTab === "people" && (
+            <StudentPeopleTab classroomId={classroomId} />
           )}
         </div>
       </main>

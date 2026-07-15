@@ -87,17 +87,27 @@ export function StudentTestsTab({ classroomId }: { classroomId: number }) {
               className="pl-9 h-9 w-48"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px] h-9">
-              <SelectValue placeholder="Filter Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Tests</SelectItem>
-              <SelectItem value="scheduled">Upcoming</SelectItem>
-              <SelectItem value="ongoing">Live</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            {[
+              { key: "all", label: "All Tests" },
+              { key: "scheduled", label: "Upcoming" },
+              { key: "ongoing", label: "Live" },
+              { key: "completed", label: "Completed" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                  statusFilter === f.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

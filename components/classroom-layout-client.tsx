@@ -7,13 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ArrowLeft, Users, ClipboardList, BookOpenCheck, Bell, Settings,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, BarChart
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useGetUnreadUpdatesCount } from "@/hooks/tanstackQuery/update/use-get-unread-count";
 
-type Tab = "students" | "tests" | "assignments" | "updates" | "settings";
+type Tab = "analytics" | "students" | "tests" | "assignments" | "updates" | "settings";
 
 export function ClassroomLayoutClient({ 
   classroomId, 
@@ -63,7 +63,8 @@ export function ClassroomLayoutClient({
   };
 
   const navItems: NavItem[] = [
-    { id: "students", label: "Students", icon: Users, href: `/dashboard/classroom/${classroomId}` },
+    { id: "analytics", label: "Analytics", icon: BarChart, href: `/dashboard/classroom/${classroomId}` },
+    { id: "students", label: "Students", icon: Users, href: `/dashboard/classroom/${classroomId}/students` },
     { id: "tests", label: "Tests", icon: ClipboardList, href: `/dashboard/classroom/${classroomId}/tests` },
     { id: "assignments", label: "Assignments", icon: BookOpenCheck, href: `/dashboard/classroom/${classroomId}/assignments` },
     { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount, href: `/dashboard/classroom/${classroomId}/updates` },
