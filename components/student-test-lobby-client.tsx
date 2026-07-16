@@ -61,7 +61,7 @@ function CountdownDisplay({ ms }: { ms: number }) {
 
   if (days > 0) {
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1 sm:gap-3">
         <TimeUnit value={days} label="days" />
         <Colon />
         <TimeUnit value={hours} label="hrs" />
@@ -74,7 +74,7 @@ function CountdownDisplay({ ms }: { ms: number }) {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1 sm:gap-3">
       <TimeUnit value={hours} label="hrs" highlight={isUrgent} />
       <Colon />
       <TimeUnit value={minutes} label="min" highlight={isUrgent} />
@@ -87,19 +87,19 @@ function CountdownDisplay({ ms }: { ms: number }) {
 function TimeUnit({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center rounded-2xl border w-20 h-20 transition-colors",
+      "flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border w-14 h-14 sm:w-20 sm:h-20 transition-colors",
       highlight
         ? "border-orange-500/40 bg-orange-500/10 text-orange-400"
         : "border-border bg-card text-foreground"
     )}>
-      <span className="text-3xl font-bold font-mono tabular-nums leading-none">{String(value).padStart(2, "0")}</span>
-      <span className={cn("text-xs mt-1 font-medium uppercase tracking-widest", highlight ? "text-orange-400/70" : "text-muted-foreground")}>{label}</span>
+      <span className="text-xl sm:text-3xl font-bold font-mono tabular-nums leading-none">{String(value).padStart(2, "0")}</span>
+      <span className={cn("text-[9px] sm:text-xs mt-1 font-medium uppercase tracking-widest", highlight ? "text-orange-400/70" : "text-muted-foreground")}>{label}</span>
     </div>
   );
 }
 
 function Colon() {
-  return <span className="text-3xl font-bold text-muted-foreground/40 leading-none pb-4">:</span>;
+  return <span className="text-xl sm:text-3xl font-bold text-muted-foreground/40 leading-none pb-2 sm:pb-4">:</span>;
 }
 
 // ─── Info Card ────────────────────────────────────────────────────────────────
@@ -234,14 +234,14 @@ export function StudentTestLobbyClient({
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <InfoCard icon={FileText} label="Questions" value={test.totalQuestions ?? "—"} />
             <InfoCard icon={Award} label="Total Marks" value={test.totalMarks ?? "—"} accent />
             <InfoCard icon={Clock} label="Duration" value={`${test.durationMinutes} min`} />
             <InfoCard
               icon={Shield}
               label="Neg. Marking"
-              value={test.isNegativeMarking ? "-1 per wrong" : "None"}
+              value={test.isNegativeMarking ? "-1" : "None"}
             />
           </div>
 
@@ -255,7 +255,7 @@ export function StudentTestLobbyClient({
 
           {/* ── Countdown / CTA Block ── */}
           <div className={cn(
-            "rounded-2xl border p-8 flex flex-col items-center gap-6 text-center",
+            "rounded-2xl border p-6 sm:p-8 flex flex-col items-center gap-6 text-center overflow-hidden",
             isLive
               ? "border-green-500/20 bg-green-500/5"
               : isCompleted

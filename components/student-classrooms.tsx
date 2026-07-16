@@ -32,28 +32,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Zap, ArrowRight, Search, Clock, CalendarDays, KeyRound } from "lucide-react";
+import { GraduationCap, Zap, ArrowRight, Search, Clock, CalendarDays, Plus } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-export function StudentClassrooms() {
+export function StudentClassrooms({ mobileSidebar }: { mobileSidebar?: React.ReactNode }) {
   const { data, isLoading } = useGetClassrooms();
   const { mutate: joinClassroom, isPending: isJoining } = useJoinClassroom();
 
   const [joinOpen, setJoinOpen] = useState(false);
   const [code, setCode] = useState("");
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
   const memberships = data?.classrooms || [];
 
   const filtered = useMemo(() => {
-    if (!search) return memberships;
-    const q = search.toLowerCase();
-    return memberships.filter(
-      (m: any) =>
+    return memberships.filter((m: any) => {
+      const q = search.toLowerCase();
+      const matchesSearch = 
+        !search ||
         m.classroom.name.toLowerCase().includes(q) ||
-        (m.classroom.description ?? "").toLowerCase().includes(q)
-    );
-  }, [memberships, search]);
+        (m.classroom.description ?? "").toLowerCase().includes(q);
+        
+      const matchesFilter = 
+        filter === "all" ||
+        (filter === "pending" && m.status === "pending") ||
+        (filter === "approved" && m.status === "approved");
+        
+      return matchesSearch && matchesFilter;
+    });
+  }, [memberships, search, filter]);
 
   const handleJoin = () => {
     const trimmed = code.trim().toUpperCase();
@@ -83,37 +92,62 @@ export function StudentClassrooms() {
   return (
     <div className="flex h-full w-full flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">My Classrooms</h1>
-          <p className="mt-2 text-muted-foreground">
-            Join classrooms to participate in quizzes and track your progress.
-          </p>
+      <header className="flex items-center justify-between gap-4 pb-6">
+        <div className="flex items-center gap-3">
+          <div className="md:hidden flex items-center">
+            {mobileSidebar}
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">My Classrooms</h1>
+            <p className="mt-1 md:mt-2 text-sm md:text-base text-muted-foreground">
+              Join classrooms to take tests.
+            </p>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => setJoinOpen(true)}>
-          <KeyRound className="h-4 w-4" />
-          Join Classroom
+        <Button size="sm" className="gap-2 shrink-0" onClick={() => setJoinOpen(true)}>
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Join Classroom</span>
         </Button>
       </header>
 
-      {/* Search Bar */}
+      {/* Search Bar & Filters */}
       {memberships.length > 0 && (
-        <div className="flex items-center gap-3 border-y border-border bg-card/50 px-6 py-3 mb-6 -mx-8">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 border-y border-border bg-card/50 px-4 md:px-6 py-3 mb-6 -mx-4 md:-mx-8">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search classrooms..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm border-none shadow-none focus-visible:ring-0 bg-transparent"
+              className="pl-9 h-9 text-sm"
             />
           </div>
-          {search && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { key: "all", label: "All Classrooms" },
+              { key: "approved", label: "Approved" },
+              { key: "pending", label: "Pending" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                  filter === f.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {(search || filter !== "all") && (
             <Button
               variant="ghost"
               size="sm"
               className="text-muted-foreground text-xs"
-              onClick={() => setSearch("")}
+              onClick={() => { setSearch(""); setFilter("all"); }}
             >
               Clear
             </Button>
@@ -139,7 +173,7 @@ export function StudentClassrooms() {
               Ask your educator for a 6-character join code to enter their classroom.
             </p>
             <Button className="mt-6 gap-2" onClick={() => setJoinOpen(true)}>
-              <KeyRound className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
               Join a Classroom
             </Button>
           </div>
@@ -152,16 +186,17 @@ export function StudentClassrooms() {
             <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search query.</p>
           </div>
         ) : (
-          <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40%]">Classroom Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Requested On</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+          <div className="rounded-md border border-border overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[30%]">Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Requested</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filtered.map((m: any) => {
                   const c = m.classroom;
@@ -181,29 +216,29 @@ export function StudentClassrooms() {
                       <TableCell>
                         <Badge 
                           variant={isPending ? "secondary" : "default"} 
-                          className={isPending ? "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-orange-500/20 shadow-none" : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 shadow-none"}
+                          className={cn("shadow-none", isPending ? "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-orange-500/20" : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20")}
                         >
                           {isPending ? (
-                            <span className="flex items-center gap-1.5"><Clock className="h-3 w-3"/> Pending Approval</span>
+                            <span className="flex items-center gap-1.5"><Clock className="h-3 w-3"/> Pending</span>
                           ) : (
                             <span className="flex items-center gap-1.5"><Zap className="h-3 w-3"/> Approved</span>
                           )}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <CalendarDays className="h-3.5 w-3.5" />
+                        <span className="text-xs text-muted-foreground">
                           {format(new Date(m.joinedAt), "MMM d, yyyy")}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
                         {!isPending && (
-                          <Button asChild size="sm" variant="outline" className="h-8 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                            <Link href={`/dashboard/classroom/${c.id}`}>
-                              Enter
-                              <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                            </Link>
-                          </Button>
+                          <div className="flex items-center justify-end">
+                            <Button asChild size="sm" variant="outline" className="h-8 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                              <Link href={`/dashboard/classroom/${c.id}`}>
+                                Enter
+                              </Link>
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -211,6 +246,7 @@ export function StudentClassrooms() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </div>
         )}
       </div>
@@ -219,7 +255,7 @@ export function StudentClassrooms() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-primary" />
+              <Plus className="h-5 w-5 text-primary" />
               Join Classroom
             </DialogTitle>
             <DialogDescription>

@@ -9,11 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, Play, SkipForward, Square, Clock, Users, Trophy } from "lucide-react";
+import { ArrowLeft, Play, SkipForward, Square, Clock, Users, Trophy, Menu } from "lucide-react";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -209,7 +210,7 @@ export default function HostQuizPage() {
       const sumVotes = Object.values(voteCounts).reduce((a, b) => a + b, 0) || 0;
 
       return (
-        <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-6 md:mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isCorrect = 
               currentQuestion.type === "single_choice" 
@@ -223,7 +224,7 @@ export default function HostQuizPage() {
                 <div 
                   key={opt.id} 
                   className={cn(
-                    "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-2 shadow-sm transition-colors",
+                    "relative overflow-hidden flex items-center justify-between p-4 md:p-6 rounded-xl border-2 shadow-sm transition-colors",
                     isCorrect 
                       ? "border-green-500 bg-green-500/10 text-green-700" 
                       : "border-border bg-card"
@@ -235,22 +236,22 @@ export default function HostQuizPage() {
                     style={{ width: `${percentage}%` }}
                   />
                   
-                  <div className="flex items-center gap-4 relative z-10">
+                  <div className="flex items-center gap-3 md:gap-4 relative z-10 w-full overflow-hidden mr-4">
                     <div className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                      "flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full text-base md:text-lg font-bold",
                       isCorrect ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
                     )}>
                       {labels[i]}
                     </div>
-                    <span className={cn("text-xl font-medium", isCorrect ? "text-foreground" : "text-foreground")}>
+                    <span className={cn("text-lg md:text-xl font-medium truncate", isCorrect ? "text-foreground" : "text-foreground")}>
                       {opt.text}
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-3 relative z-10">
-                    <span className="font-bold text-lg text-muted-foreground">{percentage}%</span>
+                  <div className="flex items-center gap-2 md:gap-3 relative z-10 shrink-0">
+                    <span className="font-bold text-base md:text-lg text-muted-foreground">{percentage}%</span>
                     {isCorrect && (
-                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px]">
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] hidden sm:inline-flex">
                         Correct
                       </Badge>
                     )}
@@ -271,9 +272,9 @@ export default function HostQuizPage() {
 
 
       return (
-        <div className="flex gap-6 mt-8 w-full max-w-2xl mx-auto">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mt-6 md:mt-8 w-full max-w-2xl mx-auto">
           <div className={cn(
-            "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-2 shadow-sm relative overflow-hidden transition-colors",
+            "flex-1 flex flex-col items-center justify-center p-6 md:p-8 rounded-xl border-2 shadow-sm relative overflow-hidden transition-colors",
             ans === true ? "border-green-500 bg-green-500/10 text-green-700" : "border-border bg-card text-primary"
           )}>
             <div 
@@ -281,16 +282,16 @@ export default function HostQuizPage() {
               style={{ height: `${truePct}%` }}
             />
             {ans === true && (
-              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] z-10">
+              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] z-10 hidden sm:inline-flex">
                 Correct
               </Badge>
             )}
-            <span className={cn("text-3xl font-bold z-10", ans === true ? "text-green-600" : "")}>True</span>
-            <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>
+            <span className={cn("text-2xl md:text-3xl font-bold z-10", ans === true ? "text-green-600" : "")}>True</span>
+            <span className="font-bold text-base md:text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>
           </div>
 
           <div className={cn(
-            "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-2 shadow-sm relative overflow-hidden transition-colors",
+            "flex-1 flex flex-col items-center justify-center p-6 md:p-8 rounded-xl border-2 shadow-sm relative overflow-hidden transition-colors",
             ans === false ? "border-green-500 bg-green-500/10 text-green-700" : "border-border bg-card text-destructive"
           )}>
             <div 
@@ -298,12 +299,12 @@ export default function HostQuizPage() {
               style={{ height: `${falsePct}%` }}
             />
             {ans === false && (
-              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] z-10">
+              <Badge variant="default" className="absolute top-4 right-4 bg-green-500 hover:bg-green-600 uppercase tracking-widest text-[10px] z-10 hidden sm:inline-flex">
                 Correct
               </Badge>
             )}
-            <span className={cn("text-3xl font-bold z-10", ans === false ? "text-green-600" : "")}>False</span>
-            <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>
+            <span className={cn("text-2xl md:text-3xl font-bold z-10", ans === false ? "text-green-600" : "")}>False</span>
+            <span className="font-bold text-base md:text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>
           </div>
         </div>
       );
@@ -363,42 +364,119 @@ export default function HostQuizPage() {
     return null;
   };
 
+  const LeaderboardPanel = (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-card">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-primary" />
+          <span className="font-bold text-sm text-foreground">Leaderboard</span>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {lastLeaderboard.length} students
+        </Badge>
+      </div>
+
+      {lastLeaderboard.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <Trophy className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="font-semibold text-foreground text-sm">Results will appear here</p>
+          <p className="text-xs text-muted-foreground">Click &apos;Show Results&apos; after the first question</p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {isInProgress && (
+            <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 border-b border-border font-medium">
+              Previous question rankings
+            </div>
+          )}
+          <ul className="divide-y divide-border">
+            {lastLeaderboard.map((entry, index) => {
+              const rank = index + 1;
+              const name = [entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown Student";
+              return (
+                <li key={entry.studentId} className="flex items-center gap-3 px-3 py-2.5">
+                  <div className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                    rank === 1 ? "bg-amber-500 text-white" :
+                    rank === 2 ? "bg-slate-400 text-white" :
+                    rank === 3 ? "bg-orange-700 text-white" :
+                    "bg-muted text-muted-foreground"
+                  )}>
+                    {rank}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{name}</p>
+                    {entry.rollNumber && (
+                      <span className="inline-block font-mono text-xs bg-muted rounded px-2 py-0.5 mt-0.5 max-w-full truncate">
+                        {entry.rollNumber}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm font-bold text-primary shrink-0">{entry.totalScore}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex h-screen flex-col bg-background overflow-hidden">
       {/* ── TOP BAR ── */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6 z-10">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground leading-tight">{quiz.title}</h1>
-            <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase">
-              {quiz.status.replace("_", " ")}
-            </Badge>
+      <header className="flex min-h-16 shrink-0 flex-col md:flex-row md:items-center justify-between border-b border-border bg-card px-4 md:px-6 py-2 md:py-0 z-10 gap-2 md:gap-0">
+        <div className="flex items-center justify-between w-full md:w-auto gap-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="shrink-0" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-base md:text-lg font-bold text-foreground leading-tight line-clamp-1">{quiz.title}</h1>
+              <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase">
+                {quiz.status.replace("_", " ")}
+              </Badge>
+            </div>
+          </div>
+          <div className="flex lg:hidden shrink-0">
+            {(isInProgress || isShowingResults) && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                    <Trophy className="h-4 w-4" />
+                    <span className="sr-only sm:not-sr-only">Leaderboard</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
+                  {LeaderboardPanel}
+                </SheetContent>
+              </Sheet>
+            )}
           </div>
         </div>
         
-        {isInProgress && (
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 border border-primary/30 rounded-lg px-4 py-1.5 flex items-center gap-2">
-              <span className="text-xs uppercase font-bold text-primary tracking-wider">Join Code:</span>
-              <span className="font-mono font-bold text-lg text-foreground tracking-widest">{quiz.joinCode}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between w-full md:w-auto gap-3 flex-wrap">
           {isInProgress && (
-            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20">
-              <span className="font-bold">{totalVoted} / {liveStudentCount}</span> Voted
+            <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 md:px-4 py-1.5 flex items-center gap-2">
+              <span className="text-[10px] md:text-xs uppercase font-bold text-primary tracking-wider hidden sm:inline">Join Code:</span>
+              <span className="font-mono font-bold text-sm md:text-lg text-foreground tracking-widest">{quiz.joinCode}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            {liveStudentCount} {liveStudentCount === 1 ? "Student" : "Students"}
+          
+          <div className="flex items-center gap-2 md:gap-3 shrink-0 ml-auto md:ml-0">
+            {isInProgress && (
+              <div className="flex items-center gap-1.5 md:gap-2 rounded-full bg-primary/10 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-medium text-primary border border-primary/20">
+                <span className="font-bold">{totalVoted} / {liveStudentCount}</span> <span className="hidden sm:inline">Voted</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 md:gap-2 rounded-full bg-muted px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-medium text-foreground">
+              <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+              <span className="font-bold">{liveStudentCount}</span> <span className="hidden sm:inline">Students</span>
+            </div>
           </div>
         </div>
       </header>
@@ -406,72 +484,11 @@ export default function HostQuizPage() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex flex-1 overflow-hidden">
 
-        {/* LEFT: Leaderboard Sidebar — only during active quiz */}
+        {/* LEFT: Leaderboard Sidebar — only during active quiz (Desktop) */}
         {(isInProgress || isShowingResults) && (
-        <aside className="w-72 shrink-0 border-r border-border bg-card flex flex-col h-full overflow-hidden">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-primary" />
-              <span className="font-bold text-sm text-foreground">Leaderboard</span>
-            </div>
-            <Badge variant="secondary" className="text-xs">
-              {lastLeaderboard.length} students
-            </Badge>
-          </div>
-
-          {/* Sidebar Body */}
-          {lastLeaderboard.length === 0 ? (
-            // No results yet — first question hasn't been revealed
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Trophy className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <p className="font-semibold text-foreground text-sm">Results will appear here</p>
-              <p className="text-xs text-muted-foreground">Click &apos;Show Results&apos; after the first question</p>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto">
-              {isInProgress && (
-                <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 border-b border-border font-medium">
-                  Previous question rankings
-                </div>
-              )}
-              <ul className="divide-y divide-border">
-                {lastLeaderboard.map((entry, index) => {
-                  const rank = index + 1;
-                  const name = [entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown Student";
-                  return (
-                    <li key={entry.studentId} className="flex items-center gap-3 px-3 py-2.5">
-                      {/* Rank badge */}
-                      <div className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                        rank === 1 ? "bg-amber-500 text-white" :
-                        rank === 2 ? "bg-slate-400 text-white" :
-                        rank === 3 ? "bg-orange-700 text-white" :
-                        "bg-muted text-muted-foreground"
-                      )}>
-                        {rank}
-                      </div>
-                      {/* Name + Roll */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                        {entry.rollNumber && (
-                          <span className="inline-block font-mono text-xs bg-muted rounded px-2 py-0.5 mt-0.5 max-w-full truncate">
-                            {entry.rollNumber}
-                          </span>
-                        )}
-                      </div>
-                      {/* Score */}
-                      <span className="text-sm font-bold text-primary shrink-0">{entry.totalScore}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-        </aside>
+          <aside className="hidden lg:flex w-72 shrink-0 border-r border-border bg-card flex-col h-full overflow-hidden">
+            {LeaderboardPanel}
+          </aside>
         )}
 
         {/* RIGHT: Existing main content */}
@@ -480,15 +497,15 @@ export default function HostQuizPage() {
           {(isDraft || isWaiting) && !isInProgress && (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
               <Card className="w-full max-w-4xl border-4 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden">
-                <div className="bg-primary px-4 py-3 text-center text-primary-foreground text-sm font-bold tracking-widest uppercase">
+                <div className="bg-primary px-4 py-3 text-center text-primary-foreground text-xs md:text-sm font-bold tracking-widest uppercase">
                   Join Code
                 </div>
-                <CardContent className="flex flex-col items-center justify-center p-16">
-                  <p className="text-muted-foreground mb-6 font-medium text-2xl">
+                <CardContent className="flex flex-col items-center justify-center p-8 md:p-16">
+                  <p className="text-muted-foreground mb-6 font-medium text-lg md:text-2xl text-center">
                     Go to <span className="font-bold text-foreground">eduquiz.app/join</span> and enter:
                   </p>
-                  <div className="rounded-2xl bg-background border-2 border-primary/30 px-16 py-8 shadow-inner">
-                    <span className="text-8xl font-black tracking-[0.25em] text-foreground font-mono">
+                  <div className="rounded-2xl bg-background border-2 border-primary/30 px-8 md:px-16 py-6 md:py-8 shadow-inner w-full sm:w-auto text-center">
+                    <span className="text-5xl md:text-8xl font-black tracking-[0.1em] md:tracking-[0.25em] text-foreground font-mono">
                       {quiz.joinCode}
                     </span>
                   </div>
@@ -540,7 +557,7 @@ export default function HostQuizPage() {
                 </div>
 
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <h3 className="text-4xl md:text-5xl font-bold text-foreground leading-tight max-w-4xl">
+                  <h3 className="text-2xl sm:text-4xl md:text-5xl font-bold text-foreground leading-tight max-w-4xl">
                     {currentQuestion.text}
                   </h3>
                   
@@ -553,19 +570,19 @@ export default function HostQuizPage() {
           {/* COMPLETED STATE */}
           {isCompleted && (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-              <Card className="w-full max-w-2xl border-2 border-border shadow-2xl text-center p-16">
-                <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-                  <Square className="h-12 w-12 text-primary" />
+              <Card className="w-full max-w-2xl border-2 border-border shadow-2xl text-center p-8 md:p-16">
+                <div className="mx-auto mb-6 md:mb-8 flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full bg-primary/10">
+                  <Square className="h-10 w-10 md:h-12 md:w-12 text-primary" />
                 </div>
-                <h2 className="text-4xl font-bold text-foreground">Quiz Ended</h2>
-                <p className="mt-4 text-xl text-muted-foreground">The quiz has been successfully completed.</p>
-                <div className="mt-12 flex items-center justify-center gap-4">
-                  <Button asChild size="lg" variant="outline" className="h-14 px-8 text-lg font-bold">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground">Quiz Ended</h2>
+                <p className="mt-3 md:mt-4 text-lg md:text-xl text-muted-foreground">The quiz has been successfully completed.</p>
+                <div className="mt-8 md:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 w-full">
+                  <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base md:text-lg font-bold w-full sm:w-auto">
                     <Link href="/dashboard">Back to Dashboard</Link>
                   </Button>
-                  <Button asChild size="lg" className="h-14 px-8 text-lg font-bold gap-2 shadow-lg">
+                  <Button asChild size="lg" className="h-14 px-8 text-base md:text-lg font-bold gap-2 shadow-lg w-full sm:w-auto">
                     <Link href={`/quiz/${quiz.id}/results`}>
-                      <Trophy className="h-5 w-5" />
+                      <Trophy className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
                       View Final Results
                     </Link>
                   </Button>
@@ -578,50 +595,52 @@ export default function HostQuizPage() {
 
       {/* ── BOTTOM HOST CONTROLS (Only when in progress or showing results) ── */}
       {(isInProgress || isShowingResults) && (
-        <footer className="shrink-0 border-t border-border bg-card p-4 z-10 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)]">
-          <div className="mx-auto flex max-w-5xl items-center justify-center gap-4">
+        <footer className="shrink-0 border-t border-border bg-card p-3 sm:p-4 z-10 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)]">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-2 sm:gap-4">
             <Button 
               size="lg" 
               variant="outline" 
-              className="h-14 px-8 font-bold gap-2 text-muted-foreground hover:text-foreground"
+              className="h-12 sm:h-14 px-4 sm:px-8 font-bold gap-2 text-muted-foreground hover:text-foreground flex-1 sm:flex-none text-xs sm:text-base"
               disabled={isControlling || isShowingResults}
               onClick={() => handleAction("add_time")}
             >
-              <Clock className="h-5 w-5" />
-              +15 Seconds
+              <Clock className="h-4 sm:h-5 w-4 sm:w-5 shrink-0" />
+              <span className="hidden sm:inline">+15 Seconds</span>
+              <span className="sm:hidden">+15s</span>
             </Button>
 
             {isInProgress ? (
               <Button 
                 size="lg" 
-                className="h-14 px-12 text-lg font-bold shadow-lg gap-2"
+                className="h-12 sm:h-14 px-6 sm:px-12 text-sm sm:text-lg font-bold shadow-lg gap-2 flex-1 sm:flex-none"
                 disabled={isControlling}
                 onClick={() => handleAction("show_results")}
               >
-                <SkipForward className="h-5 w-5" />
-                Show Results
+                <SkipForward className="h-4 sm:h-5 w-4 sm:w-5 shrink-0" />
+                <span className="truncate">Show Results</span>
               </Button>
             ) : (
               <Button 
                 size="lg" 
-                className="h-14 px-12 text-lg font-bold shadow-lg gap-2"
+                className="h-12 sm:h-14 px-6 sm:px-12 text-sm sm:text-lg font-bold shadow-lg gap-2 flex-1 sm:flex-none"
                 disabled={isControlling}
                 onClick={() => handleAction("next")}
               >
-                <SkipForward className="h-5 w-5" />
-                {currentQuestionIndex + 1 === quiz.questions?.length ? "Finish Quiz" : "Next Question"}
+                <SkipForward className="h-4 sm:h-5 w-4 sm:w-5 shrink-0" />
+                <span className="truncate">{currentQuestionIndex + 1 === quiz.questions?.length ? "Finish Quiz" : "Next Question"}</span>
               </Button>
             )}
 
             <Button 
               size="lg" 
               variant="destructive" 
-              className="h-14 px-8 font-bold shadow-lg gap-2 ml-auto"
+              className="h-12 sm:h-14 px-4 sm:px-8 font-bold shadow-lg gap-2 ml-auto text-xs sm:text-base flex-[0.5] sm:flex-none"
               disabled={isControlling}
               onClick={() => handleAction("end")}
             >
-              <Square className="h-5 w-5" />
-              End Early
+              <Square className="h-4 sm:h-5 w-4 sm:w-5 shrink-0" />
+              <span className="hidden sm:inline">End Early</span>
+              <span className="sm:hidden">End</span>
             </Button>
           </div>
         </footer>

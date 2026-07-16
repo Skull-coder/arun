@@ -571,38 +571,48 @@ export default function StudentQuizPage() {
   return (
     <div className="flex h-screen flex-col bg-background overflow-hidden relative">
       {/* ── TOP BAR ── */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6 z-10">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-lg font-bold text-foreground leading-tight">{quiz.title}</h1>
-            <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase">
-              {isWaiting || isDraft ? "Waiting to start" : quiz.status.replace("_", " ")}
+      <header className="flex min-h-16 shrink-0 flex-col sm:flex-row items-center justify-between border-b border-border bg-card px-4 md:px-6 py-2 sm:py-0 z-10 gap-2 sm:gap-0">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+          <div className="flex items-center gap-2 max-w-[80%]">
+            <h1 className="text-base md:text-lg font-bold text-foreground leading-tight line-clamp-1">{quiz.title}</h1>
+            <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase shrink-0">
+              {isWaiting || isDraft ? "Waiting" : quiz.status.replace("_", " ")}
             </Badge>
           </div>
+          <div className="sm:hidden flex items-center shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => setProfileOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full sm:w-auto">
           {currentRank !== null && (
-            <div className="flex items-center gap-2 rounded-full bg-indigo-500/10 px-4 py-1.5 text-sm font-bold text-indigo-600 border border-indigo-500/20 shadow-sm transition-all duration-300">
-              <span>Rank: #{currentRank}</span>
+            <div className="flex items-center gap-1 md:gap-2 rounded-full bg-indigo-500/10 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-bold text-indigo-600 border border-indigo-500/20 shadow-sm transition-all duration-300">
+              <span><span className="hidden sm:inline">Rank: </span>#{currentRank}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm font-bold text-amber-600 border border-amber-500/20 shadow-sm transition-all duration-300">
-            <Trophy className="h-4 w-4" />
-            <span>Score: {displayScore}</span>
+          <div className="flex items-center gap-1 md:gap-2 rounded-full bg-amber-500/10 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-bold text-amber-600 border border-amber-500/20 shadow-sm transition-all duration-300">
+            <Trophy className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span><span className="hidden sm:inline">Score: </span>{displayScore}</span>
           </div>
           {isInProgress && (
-            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20">
-              <span className="font-bold">{totalVoted} / {liveStudentCount}</span> Voted
+            <div className="flex items-center gap-1 md:gap-2 rounded-full bg-primary/10 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-medium text-primary border border-primary/20">
+              <span className="font-bold">{totalVoted}/{liveStudentCount}</span> <span className="hidden sm:inline">Voted</span>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
+          <div className="hidden sm:flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
             <Users className="h-4 w-4 text-muted-foreground" />
             {liveStudentCount} {liveStudentCount === 1 ? "Student" : "Students"}
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full"
+            className="rounded-full hidden sm:flex"
             onClick={() => setProfileOpen(true)}
           >
             <Settings className="h-4 w-4" />
@@ -616,11 +626,11 @@ export default function StudentQuizPage() {
         {/* WAITING SCREEN */}
         {(isDraft || isWaiting) && !isInProgress && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-muted/30">
-            <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 animate-pulse">
-              <Clock className="h-12 w-12 text-primary" />
+            <div className="mx-auto mb-6 md:mb-8 flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full bg-primary/10 animate-pulse">
+              <Clock className="h-10 w-10 md:h-12 md:w-12 text-primary" />
             </div>
-            <h2 className="text-3xl font-bold text-foreground text-center">You're in!</h2>
-            <p className="mt-4 text-xl text-muted-foreground text-center max-w-md">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center">You're in!</h2>
+            <p className="mt-3 md:mt-4 text-lg md:text-xl text-muted-foreground text-center max-w-md">
               Waiting for the educator to start the quiz. Get ready!
             </p>
           </div>
@@ -631,7 +641,7 @@ export default function StudentQuizPage() {
           <div className="flex-1 flex flex-col p-6 md:p-12 overflow-y-auto">
             <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
               
-              <div className="flex items-center justify-end mb-8">
+              <div className="flex items-center justify-end mb-6 md:mb-8">
                 {/* TIMER BUBBLE */}
                 <div className={cn(
                   "flex items-center gap-2 px-5 py-2 rounded-full border-2 font-mono text-2xl font-bold shadow-sm transition-colors",
@@ -660,7 +670,7 @@ export default function StudentQuizPage() {
                   </Badge>
                 </div>
 
-                <h3 className="text-3xl md:text-4xl font-bold text-foreground leading-tight max-w-4xl">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight max-w-4xl px-2">
                   {currentQuestion.text}
                 </h3>
                 
@@ -673,16 +683,16 @@ export default function StudentQuizPage() {
         {/* COMPLETED STATE */}
         {isCompleted && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-muted/30">
-            <Card className="w-full max-w-md border-2 border-border shadow-2xl text-center p-12">
-              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-                <CheckCircle2 className="h-12 w-12 text-primary" />
+            <Card className="w-full max-w-md border-2 border-border shadow-2xl text-center p-8 md:p-12">
+              <div className="mx-auto mb-6 md:mb-8 flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full bg-primary/10">
+                <CheckCircle2 className="h-10 w-10 md:h-12 md:w-12 text-primary" />
               </div>
-              <h2 className="text-3xl font-bold text-foreground">Quiz Ended</h2>
-              <p className="mt-4 text-lg text-muted-foreground">The host has ended the session.</p>
-              <div className="mt-8 flex flex-col gap-3">
-                <Button asChild size="lg" className="w-full text-lg font-bold gap-2 shadow-lg">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground">Quiz Ended</h2>
+              <p className="mt-3 md:mt-4 text-base md:text-lg text-muted-foreground">The host has ended the session.</p>
+              <div className="mt-6 md:mt-8 flex flex-col gap-3">
+                <Button asChild size="lg" className="w-full text-base md:text-lg font-bold gap-2 shadow-lg">
                   <Link href={`/quiz/${quiz.id}/results`}>
-                    <Trophy className="h-5 w-5" />
+                    <Trophy className="h-4 w-4 md:h-5 md:w-5" />
                     View Final Results
                   </Link>
                 </Button>
@@ -696,26 +706,28 @@ export default function StudentQuizPage() {
 
         {/* ── FEEDBACK OVERLAY (Correct/Incorrect/Time Up) ── */}
         {(isInProgress || isShowingResults) && currentQuestion && (submittedStatus || isTimeUp || isShowingResults) && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
+          <div className="absolute bottom-[100px] md:bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-in slide-in-from-bottom-10 fade-in duration-300 z-50 w-[90%] md:w-auto">
             <div className={cn(
-              "px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 border-2 font-bold text-xl backdrop-blur-md transition-all",
+              "px-4 md:px-8 py-3 md:py-4 rounded-3xl md:rounded-full shadow-2xl flex flex-col sm:flex-row items-center justify-center text-center gap-2 md:gap-3 border-2 font-bold text-sm sm:text-lg md:text-xl backdrop-blur-md transition-all w-full",
               (displayStatus === "correct" && isShowingResults) && "bg-green-100/90 border-green-500 text-green-700",
               (displayStatus === "incorrect" && isShowingResults) && "bg-destructive/10 border-destructive text-destructive",
               (displayStatus === "submitted" && !isShowingResults) && "bg-primary/10 border-primary text-primary",
               (!displayStatus && isShowingResults) && "bg-muted border-border text-muted-foreground",
               (!displayStatus && !isShowingResults && isTimeUp) && "bg-muted border-border text-muted-foreground"
             )}>
-              {(displayStatus === "correct" && isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
-              {(displayStatus === "incorrect" && isShowingResults) && <XCircle className="h-8 w-8" />}
-              {(displayStatus === "submitted" && !isShowingResults) && <CheckCircle2 className="h-8 w-8" />}
-              {(!displayStatus && isShowingResults) && <XCircle className="h-8 w-8" />}
-              {(!displayStatus && !isShowingResults && isTimeUp) && <Clock className="h-8 w-8" />}
+              {(displayStatus === "correct" && isShowingResults) && <CheckCircle2 className="h-6 w-6 md:h-8 md:w-8 shrink-0" />}
+              {(displayStatus === "incorrect" && isShowingResults) && <XCircle className="h-6 w-6 md:h-8 md:w-8 shrink-0" />}
+              {(displayStatus === "submitted" && !isShowingResults) && <CheckCircle2 className="h-6 w-6 md:h-8 md:w-8 shrink-0" />}
+              {(!displayStatus && isShowingResults) && <XCircle className="h-6 w-6 md:h-8 md:w-8 shrink-0" />}
+              {(!displayStatus && !isShowingResults && isTimeUp) && <Clock className="h-6 w-6 md:h-8 md:w-8 shrink-0" />}
               
-              {(displayStatus === "correct" && isShowingResults) && "Correct!"}
-              {(displayStatus === "incorrect" && isShowingResults) && "Incorrect!"}
-              {(displayStatus === "submitted" && !isShowingResults) && "Answer recorded! Waiting for host to reveal..."}
-              {(!displayStatus && isShowingResults) && "You didn't answer in time!"}
-              {(!displayStatus && !isShowingResults && isTimeUp) && "Time's up! Waiting for results..."}
+              <span className="leading-tight">
+                {(displayStatus === "correct" && isShowingResults) && "Correct!"}
+                {(displayStatus === "incorrect" && isShowingResults) && "Incorrect!"}
+                {(displayStatus === "submitted" && !isShowingResults) && "Answer recorded! Waiting for host..."}
+                {(!displayStatus && isShowingResults) && "You didn't answer in time!"}
+                {(!displayStatus && !isShowingResults && isTimeUp) && "Time's up! Waiting for results..."}
+              </span>
             </div>
           </div>
         )}

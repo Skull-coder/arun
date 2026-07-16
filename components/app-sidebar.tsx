@@ -32,7 +32,9 @@ import {
   Mail,
   Save,
   X,
+  Menu,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -364,7 +366,7 @@ export function AppSidebar({ user, navItems, children }: AppSidebarProps) {
     <>
       <aside
         className={cn(
-          "relative flex shrink-0 flex-col border-r border-border bg-card transition-all duration-300 ease-in-out",
+          "hidden md:flex relative shrink-0 flex-col border-r border-border bg-card transition-all duration-300 ease-in-out",
           collapsed ? "w-[60px]" : "w-60"
         )}
       >
@@ -446,6 +448,92 @@ export function AppSidebar({ user, navItems, children }: AppSidebarProps) {
           />
         </div>
       </aside>
+
+      {/* Settings Dialog */}
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        user={user}
+      />
+    </>
+  );
+}
+
+// ─── Mobile App Sidebar ───────────────────────────────────────────────────────
+
+export function MobileAppSidebar({ user, navItems, children }: AppSidebarProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="md:hidden shrink-0">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[280px] p-0 flex flex-col bg-card">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 px-6 py-5 overflow-hidden">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary">
+              <LayoutDashboard className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-bold text-card-foreground">
+              EduQuiz
+            </span>
+          </div>
+
+          <Separator />
+
+          {/* Nav */}
+          <nav className="flex-1 space-y-1.5 px-4 py-4 overflow-y-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (item.onClick) item.onClick();
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors",
+                    item.active
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.soon && (
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 leading-tight">
+                      Soon
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Extra slot */}
+            <div className="pt-2">{children}</div>
+          </nav>
+
+          <Separator />
+
+          {/* User popover trigger area */}
+          <div className="p-4">
+            <UserPopover
+              user={user}
+              collapsed={false}
+              onSettings={() => {
+                setOpen(false);
+                setSettingsOpen(true);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Settings Dialog */}
       <SettingsDialog

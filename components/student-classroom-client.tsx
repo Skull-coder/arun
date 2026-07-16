@@ -14,10 +14,12 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart,
-  GraduationCap
+  GraduationCap,
+  Menu
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { StudentTestsTab } from "@/components/student-tests-tab";
 import { StudentUpdatesTab } from "@/components/updates/student-updates-tab";
 import { StudentAssignmentsTab } from "@/components/assignments/student-assignments-tab";
@@ -33,6 +35,7 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
 
   const [activeTab, setActiveTab] = useState<Tab>("analytics");
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -79,55 +82,67 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
     { id: "people", label: "People", icon: Users },
   ];
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
-      <aside className={cn("relative z-20 flex flex-col border-r border-border bg-card transition-all duration-300", collapsed ? "w-[68px]" : "w-64")}>
-        <div className="h-[72px] shrink-0 flex items-center px-4 border-b border-border">
+  const SidebarContent = ({ isMobile = false, onClose }: { isMobile?: boolean, onClose?: () => void }) => (
+    <div className="flex flex-col h-full bg-card">
+      <div className={cn("shrink-0 flex items-center px-4 border-border", isMobile ? "h-14" : "h-[72px] border-b")}>
+        {!isMobile && (
           <Button asChild variant="ghost" className={cn("w-full justify-start gap-2 text-muted-foreground hover:text-foreground", collapsed && "justify-center px-0")}>
             <Link href="/dashboard/classrooms">
               <ArrowLeft className="h-4 w-4 shrink-0" />
               {!collapsed && "Back to Classrooms"}
             </Link>
           </Button>
-        </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => !item.soon && setActiveTab(item.id as Tab)}
-              disabled={item.soon}
-              title={collapsed ? item.label : undefined}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
-                collapsed && "justify-center px-0",
-                activeTab === item.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left flex items-center justify-between">
-                    {item.label}
-                    {item.badgeCount ? (
-                      <Badge className="ml-2 px-1.5 py-0 min-w-[20px] justify-center text-[10px] bg-yellow-400 text-yellow-950 hover:bg-yellow-500 border-none font-bold shadow-sm">
-                        {item.badgeCount}
-                      </Badge>
-                    ) : null}
-                  </span>
-                  {item.soon && (
-                    <Badge variant="secondary" className="text-[10px] px-1 py-0 leading-tight">
-                      Soon
+        )}
+      </div>
+      <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => {
+              if (!item.soon) {
+                setActiveTab(item.id as Tab);
+                onClose?.();
+              }
+            }}
+            disabled={item.soon}
+            title={!isMobile && collapsed ? item.label : undefined}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+              !isMobile && collapsed && "justify-center px-0",
+              activeTab === item.id
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
+            {(isMobile || !collapsed) && (
+              <>
+                <span className="flex-1 text-left flex items-center justify-between">
+                  {item.label}
+                  {item.badgeCount ? (
+                    <Badge className="ml-2 px-1.5 py-0 min-w-[20px] justify-center text-[10px] bg-yellow-400 text-yellow-950 hover:bg-yellow-500 border-none font-bold shadow-sm">
+                      {item.badgeCount}
                     </Badge>
-                  )}
-                </>
-              )}
-            </button>
-          ))}
-        </nav>
-        
+                  ) : null}
+                </span>
+                {item.soon && (
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0 leading-tight">
+                    Soon
+                  </Badge>
+                )}
+              </>
+            )}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Desktop Sidebar */}
+      <aside className={cn("hidden md:flex relative z-20 flex-col border-r border-border bg-card transition-all duration-300", collapsed ? "w-[68px]" : "w-64")}>
+        <SidebarContent />
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed((v) => !v)}
@@ -143,22 +158,35 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-[72px] shrink-0 flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/40 bg-card/80 backdrop-blur-xl px-8 sticky top-0 z-10 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-inner">
-              <GraduationCap className="h-5 w-5" />
+        <header className="h-auto md:h-[72px] shrink-0 flex flex-col md:flex-row md:items-center justify-between border-b border-border/40 bg-card/80 backdrop-blur-xl px-4 md:px-8 py-4 md:py-0 sticky top-0 z-10 shadow-sm gap-4 md:gap-0">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="-ml-2">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-64 p-0">
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <SidebarContent isMobile={true} onClose={() => setIsMobileMenuOpen(false)} />
+                </SheetContent>
+              </Sheet>
             </div>
-            <div>
-              <h2 className="text-2xl font-extrabold tracking-tight text-foreground leading-none">{classroom.name}</h2>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Student View</span>
+            <div className="flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-inner shrink-0">
+              <GraduationCap className="h-4 w-4 md:h-5 md:w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-foreground leading-none truncate">{classroom.name}</h2>
+              <div className="flex items-center gap-2 mt-1 md:mt-1.5 flex-wrap">
+                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Student View</span>
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-600 border-none font-bold">Enrolled</Badge>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-4 md:p-8">
           {activeTab === "analytics" && (
             <StudentAnalyticsTab classroomId={classroomId} />
           )}

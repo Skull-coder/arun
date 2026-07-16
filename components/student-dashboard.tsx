@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AppSidebar, type NavItem } from "@/components/app-sidebar";
+import { AppSidebar, MobileAppSidebar, type NavItem } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { DashboardCard } from "@/components/ui/dashboard-card";
 import { useGetQuizzes } from "@/hooks/tanstackQuery/quiz/use-get-quizzes";
 import { useJoinQuiz } from "@/hooks/tanstackQuery/quiz/use-join-quiz";
 import Link from "next/link";
@@ -35,9 +35,10 @@ import {
   Hash,
   Star,
   Zap,
-  BookOpen,
+  FileQuestion,
   Timer,
   ArrowRight,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StudentClassrooms } from "./student-classrooms";
@@ -174,7 +175,7 @@ export default function StudentDashboard({ user }: Props) {
   const router = useRouter();
   
   const studentNavItems: NavItem[] = [
-    { label: "My Quizzes", icon: BookOpen, active: true, onClick: () => router.push("/dashboard") },
+    { label: "My Quizzes", icon: Timer, active: true, onClick: () => router.push("/dashboard") },
     { label: "Classrooms", icon: GraduationCap, active: false, onClick: () => router.push("/dashboard/classrooms") },
     { label: "Performance", icon: BarChart2, soon: true },
   ];
@@ -208,24 +209,30 @@ export default function StudentDashboard({ user }: Props) {
       {/* ── MAIN ── */}
       <main className="flex flex-1 flex-col overflow-hidden bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-8 py-5">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">My Quizzes</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {isLoading
-                ? "Loading…"
-                : `${totalPlayed} quiz${totalPlayed !== 1 ? "zes" : ""} played`}
-            </p>
+        <div className="flex items-center justify-between border-b border-border px-4 md:px-8 py-4 md:py-5 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="md:hidden flex items-center">
+              <MobileAppSidebar user={user} navItems={studentNavItems} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">My Quizzes</h1>
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                {isLoading
+                  ? "Loading…"
+                  : `${totalPlayed} quiz${totalPlayed !== 1 ? "zes" : ""} played`}
+              </p>
+            </div>
           </div>
-          <Button onClick={() => setJoinOpen(true)} className="gap-2" size="sm">
+          <Button onClick={() => setJoinOpen(true)} className="gap-2 shrink-0" size="sm">
             <Zap className="h-4 w-4" />
-            Join a Quiz
+            <span className="hidden sm:inline">Join a Quiz</span>
+            <span className="sm:hidden">Join</span>
           </Button>
         </div>
 
         {/* Stats strip */}
         {!isLoading && totalPlayed > 0 && (
-          <div className="flex items-center gap-6 border-b border-border bg-card/40 px-8 py-3">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 border-b border-border bg-card/40 px-4 md:px-8 py-3 shrink-0">
             <div className="flex items-center gap-2 text-sm">
               <Hash className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Played:</span>
@@ -245,21 +252,21 @@ export default function StudentDashboard({ user }: Props) {
         )}
 
         {/* Search */}
-        <div className="flex items-center gap-3 border-b border-border bg-card/50 px-8 py-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-3 border-b border-border bg-card/50 px-4 md:px-8 py-3 shrink-0">
+          <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search quizzes…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm"
+              className="pl-9 h-9 text-sm w-full"
             />
           </div>
           {search && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground text-xs"
+              className="text-muted-foreground text-xs shrink-0"
               onClick={() => setSearch("")}
             >
               Clear
@@ -268,16 +275,32 @@ export default function StudentDashboard({ user }: Props) {
         </div>
 
         {/* Table / States */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
           {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="flex flex-col h-full border-border/60 shadow-sm">
+                  <CardHeader className="pb-4 gap-2 flex-row justify-between items-start space-y-0">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-4 border-t mt-auto flex justify-between items-center">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-20" />
+                  </CardFooter>
+                </Card>
               ))}
             </div>
           ) : !sessions || sessions.length === 0 ? (
             /* Empty — never played */
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex flex-col items-center justify-center py-12 md:py-24 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                 <GraduationCap className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -292,7 +315,7 @@ export default function StudentDashboard({ user }: Props) {
             </div>
           ) : filtered.length === 0 ? (
             /* Empty — search filtered */
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex flex-col items-center justify-center py-12 md:py-24 text-center">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
                 <Search className="h-6 w-6 text-muted-foreground" />
               </div>
@@ -302,114 +325,62 @@ export default function StudentDashboard({ user }: Props) {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[35%]">Quiz</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Out of</TableHead>
-                  <TableHead>Time Taken</TableHead>
-                  <TableHead>Played On</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((session: any) => (
-                  <TableRow key={session.sessionId} className="group">
-                    {/* Quiz title */}
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{session.quizTitle}</p>
-                        {session.quizDescription && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                            {session.quizDescription}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Quiz status */}
-                    <TableCell>
-                      <Badge
-                        variant={quizStatusVariant(session.quizStatus)}
-                        className="text-xs"
-                      >
-                        {quizStatusLabel(session.quizStatus)}
-                      </Badge>
-                    </TableCell>
-
-                    {/* Student's score */}
-                    <TableCell>
-                      <span
-                        className={cn(
-                          "font-semibold text-sm",
-                          scoreColor(session.totalScore, session.quizTotalMarks)
-                        )}
-                      >
-                        {session.totalScore}
-                      </span>
-                    </TableCell>
-
-                    {/* Max possible marks */}
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {session.quizTotalMarks ?? "—"}
-                      </span>
-                    </TableCell>
-
-                    {/* Time taken */}
-                    <TableCell>
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Timer className="h-3 w-3" />
-                        {session.totalTimeTakenMs > 0
-                          ? formatMs(session.totalTimeTakenMs)
-                          : "—"}
-                      </span>
-                    </TableCell>
-
-                    {/* Date */}
-                    <TableCell>
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {formatDate(session.startedAt)}
-                      </span>
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1.5">
-                        {session.quizStatus === "completed" ? (
-                          <Button
-                            asChild
-                            variant="default"
-                            size="sm"
-                            className="h-8 gap-1.5 text-xs"
-                          >
-                            <Link href={`/quiz/${session.quizId}/results`}>
-                              <Trophy className="h-3.5 w-3.5" />
-                              View Results
-                            </Link>
-                          </Button>
-                        ) : session.quizStatus !== "completed" ? (
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          >
-                            <Link href={`/quiz/${session.quizId}`}>
-                              <Zap className="h-3.5 w-3.5" />
-                              Rejoin Quiz
-                            </Link>
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filtered.map((session: any) => (
+                <DashboardCard
+                  key={session.sessionId}
+                  title={session.quizTitle}
+                  description={session.quizDescription}
+                  statusNode={
+                    <Badge variant={quizStatusVariant(session.quizStatus)} className="text-xs">
+                      {quizStatusLabel(session.quizStatus)}
+                    </Badge>
+                  }
+                  stats={[
+                    {
+                      icon: Trophy,
+                      value: (
+                        <span className={cn(scoreColor(session.totalScore, session.quizTotalMarks))}>
+                          {session.totalScore}
+                        </span>
+                      ),
+                      label: "Score"
+                    },
+                    {
+                      icon: Target,
+                      value: session.quizTotalMarks ?? "—",
+                      label: "Out Of"
+                    },
+                    {
+                      icon: Timer,
+                      value: session.totalTimeTakenMs > 0 ? formatMs(session.totalTimeTakenMs) : "—",
+                      label: "Time"
+                    }
+                  ]}
+                  footerLeft={
+                    <>
+                      <Clock className="h-3.5 w-3.5" />
+                      {formatDate(session.startedAt)}
+                    </>
+                  }
+                  footerRight={
+                    session.quizStatus === "completed" ? (
+                      <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+                        <Link href={`/quiz/${session.quizId}/results`}>
+                          <Trophy className="h-3.5 w-3.5" /> Results
+                        </Link>
+                      </Button>
+                    ) : session.quizStatus !== "completed" ? (
+                      <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                        <Link href={`/quiz/${session.quizId}`}>
+                          <Zap className="h-3.5 w-3.5" /> Rejoin
+                        </Link>
+                      </Button>
+                    ) : <></>
+                  }
+                />
+              ))}
+            </div>
           )}
         </div>
       </main>

@@ -68,7 +68,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export function EducatorClassrooms() {
+export function EducatorClassrooms({ mobileSidebar }: { mobileSidebar?: React.ReactNode }) {
   const { data, isLoading } = useGetClassrooms();
   const { mutate: createClassroom, isPending: isCreating } = useCreateClassroom();
   const { mutate: deleteClassroom, isPending: isDeleting } = useDeleteClassroom();
@@ -79,7 +79,6 @@ export function EducatorClassrooms() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
 
   const [classroomToDelete, setClassroomToDelete] = useState<{ id: number; name: string } | null>(null);
 
@@ -87,20 +86,12 @@ export function EducatorClassrooms() {
 
   const filtered = useMemo(() => {
     return classrooms.filter((c: any) => {
-      const matchesSearch = 
-        !search || 
+      return !search || 
         c.name.toLowerCase().includes(search.toLowerCase()) || 
         (c.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
         c.joinCode.toLowerCase().includes(search.toLowerCase());
-      
-      const matchesFilter = 
-        filter === "all" ||
-        (filter === "has_pending" && c.pendingCount > 0) ||
-        (filter === "no_pending" && c.pendingCount === 0);
-
-      return matchesSearch && matchesFilter;
     });
-  }, [classrooms, search, filter]);
+  }, [classrooms, search]);
 
   const handleCreate = () => {
     if (!name.trim()) return toast.error("Classroom name is required");
@@ -141,18 +132,23 @@ export function EducatorClassrooms() {
   return (
     <div className="flex h-full w-full flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">My Classrooms</h1>
-          <p className="mt-2 text-muted-foreground">
-            Manage your student rosters, monitor requests, and organize your courses.
-          </p>
+      <header className="flex items-center justify-between gap-4 pb-6">
+        <div className="flex items-center gap-3">
+          <div className="md:hidden flex items-center">
+            {mobileSidebar}
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">My Classrooms</h1>
+            <p className="mt-1 md:mt-2 text-sm md:text-base text-muted-foreground">
+              Manage your student rosters, monitor requests, and organize your courses.
+            </p>
+          </div>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button size="sm" className="gap-2 shrink-0">
               <Plus className="h-4 w-4" />
-              Create Classroom
+              <span className="hidden sm:inline">Create Classroom</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -196,7 +192,7 @@ export function EducatorClassrooms() {
 
       {/* Filters */}
       {classrooms.length > 0 && (
-        <div className="flex items-center gap-3 border-y border-border bg-card/50 px-6 py-3 mb-6 -mx-8">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 border-y border-border bg-card/50 px-4 md:px-6 py-3 mb-6 -mx-4 md:-mx-8">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -206,32 +202,12 @@ export function EducatorClassrooms() {
               className="pl-9 h-9 text-sm"
             />
           </div>
-          <div className="flex items-center gap-2">
-            {[
-              { key: "all", label: "All Classrooms" },
-              { key: "has_pending", label: "Has Pending" },
-              { key: "no_pending", label: "No Pending" },
-            ].map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
-                  filter === f.key
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          {(search || filter !== "all") && (
+          {search && (
             <Button
               variant="ghost"
               size="sm"
               className="text-muted-foreground text-xs"
-              onClick={() => { setSearch(""); setFilter("all"); }}
+              onClick={() => setSearch("")}
             >
               Clear
             </Button>
@@ -262,86 +238,75 @@ export function EducatorClassrooms() {
             </Button>
           </div>
         ) : (
-          <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[30%]">Name</TableHead>
-                  <TableHead>Join Code</TableHead>
-                  <TableHead>Students</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((c: any) => (
-                  <TableRow key={c.id} className="group">
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{c.name}</p>
-                        {c.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                            {c.description}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono tracking-wider text-foreground">
-                          {c.joinCode}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                          onClick={() => copyCode(c.joinCode, c.id)}
-                        >
-                          {copiedId === c.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Users className="h-3.5 w-3.5" />
-                          0 {/* We'll update this when we have total enrolled count in API */}
-                        </span>
-                        {c.pendingCount > 0 && (
-                          <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
-                            {c.pendingCount} Pending
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(c.createdAt), "MMM d, yyyy")}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
-                          <Link href={`/dashboard/classroom/${c.id}`}>
-                            <Settings className="h-3.5 w-3.5" />
-                            Enter
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          disabled={isDeleting}
-                          onClick={() => handleDelete(c.id, c.name)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          <div className="rounded-md border border-border overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[30%]">Name</TableHead>
+                    <TableHead>Join Code</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((c: any) => (
+                    <TableRow key={c.id} className="group">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-foreground text-sm">{c.name}</p>
+                          {c.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {c.description}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono tracking-wider text-foreground">
+                            {c.joinCode}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                            onClick={() => copyCode(c.joinCode, c.id)}
+                          >
+                            {copiedId === c.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(c.createdAt), "MMM d, yyyy")}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+                            <Link href={`/dashboard/classroom/${c.id}`}>
+                              <Settings className="h-3.5 w-3.5" />
+                              Enter
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            disabled={isDeleting}
+                            onClick={() => handleDelete(c.id, c.name)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>

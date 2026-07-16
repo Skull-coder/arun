@@ -8,14 +8,7 @@ import { useUpdateTest } from '@/hooks/tanstackQuery/test/use-update-test'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DashboardCard } from '@/components/ui/dashboard-card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,9 +36,15 @@ import {
   Eye,
   ClipboardList,
   Clock,
-  FileText,
-  Ban,
   Trophy,
+  Target,
+  Hash,
+  CalendarDays,
+  ListFilter,
+  CheckCircle2,
+  Timer,
+  Copy,
+  Ban,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -142,15 +141,15 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-foreground">Tests</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Schedule and manage competitive tests for your classroom
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2">
             {[
               { key: "all", label: "All Tests" },
               { key: "draft", label: "Drafts" },
@@ -172,7 +171,7 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
               </button>
             ))}
           </div>
-          <Button asChild size="sm" className="h-9">
+          <Button asChild size="sm" className="h-9 shrink-0 w-full sm:w-auto">
             <Link href={`/dashboard/classroom/${classroomId}/test/new`}>
               <Plus className="h-4 w-4 mr-2" />
               Create Test
@@ -183,33 +182,26 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="rounded-md border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Questions</TableHead>
-                <TableHead>Total Marks</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Scheduled At</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-6" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex flex-col h-full bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
+              <div className="p-6 pb-4 flex justify-between items-start gap-4">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="px-6 pb-4 flex-1">
+                <div className="grid grid-cols-3 gap-2">
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                </div>
+              </div>
+              <div className="px-6 pt-4 pb-4 border-t mt-auto flex justify-between items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -232,154 +224,113 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
         </div>
       )}
 
-      {/* Tests table */}
+      {/* Tests grid */}
       {!isLoading && tests && tests.length > 0 && (
-        <div className="rounded-md border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Questions</TableHead>
-                <TableHead>Total Marks</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Scheduled At</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTests?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                    No tests match your filter.
-                  </TableCell>
-                </TableRow>
-              )}
+        <>
+          {filteredTests?.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-4" />
+              <p className="text-muted-foreground">No tests match your filter.</p>
+              <Button variant="link" onClick={() => setStatusFilter("all")}>
+                Clear Filter
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredTests?.map((test: any) => {
                 const displayStatus = test.status;
                 const isScheduled = displayStatus === "scheduled";
                 const isDraft = displayStatus === "draft";
                 const isOngoing = displayStatus === "ongoing";
                 const isCompleted = displayStatus === "completed";
-                const isNotOngoing = !isOngoing;
 
                 return (
-                  <TableRow 
-                    key={test.id} 
-                    className="cursor-pointer hover:bg-muted/50" 
-                    onClick={() => router.push(`/dashboard/classroom/${classroomId}/test/${test.id}`)}
-                  >
-                    <TableCell className="font-medium text-foreground">
-                      {test.title}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={displayStatus} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.totalQuestions ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.totalMarks ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.durationMinutes} min
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.scheduledAt
-                        ? format(new Date(test.scheduledAt), 'MMM d, yyyy HH:mm')
-                        : '—'}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {(isScheduled || isDraft) && (
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/dashboard/classroom/${classroomId}/test/${test.id}/edit`}
-                                className="flex items-center gap-2"
-                              >
-                                <Pencil className="h-4 w-4" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/dashboard/classroom/${classroomId}/test/${test.id}?preview=true`}
-                              className="flex items-center gap-2"
-                            >
-                              <Eye className="h-4 w-4" />
-                              Preview
-                            </Link>
-                          </DropdownMenuItem>
-
-                          {isCompleted && (
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/dashboard/classroom/${classroomId}/test/${test.id}/results`}
-                                className="flex items-center gap-2"
-                              >
-                                <Trophy className="h-4 w-4" />
-                                View Results
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-
-                          {(isScheduled || isOngoing || isCompleted) && (
-                            <DropdownMenuSeparator />
-                          )}
-
-                          {isScheduled && (
-                            <DropdownMenuItem
-                              onClick={() => handleStart(test.id)}
-                              className="flex items-center gap-2 text-primary focus:text-primary"
-                            >
-                              <Play className="h-4 w-4" />
-                              Start Early
-                            </DropdownMenuItem>
-                          )}
-
-                          {isOngoing && (
-                            <DropdownMenuItem
-                              onClick={() => handleEnd(test.id)}
-                              className="flex items-center gap-2 text-red-600 focus:bg-red-500/10 focus:text-red-600"
-                            >
-                              <Ban className="h-4 w-4" />
-                              End Test Now
-                            </DropdownMenuItem>
-                          )}
-
-                          {true && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(test.id)}
-                                className="flex items-center gap-2 text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete
+                  <DashboardCard
+                    key={test.id}
+                    title={test.title}
+                    statusNode={<StatusBadge status={displayStatus} />}
+                    stats={[
+                      {
+                        icon: Hash,
+                        value: test.totalQuestions ?? '—',
+                        label: 'Questions'
+                      },
+                      {
+                        icon: Target,
+                        value: test.totalMarks ?? '—',
+                        label: 'Marks'
+                      },
+                      {
+                        icon: Clock,
+                        value: test.durationMinutes,
+                        label: 'Mins'
+                      }
+                    ]}
+                    footerLeft={
+                      <>
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        {test.scheduledAt ? format(new Date(test.scheduledAt), 'MMM d, h:mm a') : 'Anytime'}
+                      </>
+                    }
+                    footerRight={
+                      <>
+                        <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                          <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}`}>
+                            Manage
+                          </Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {(isScheduled || isDraft) && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}/edit`} className="flex items-center gap-2">
+                                  <Pencil className="h-4 w-4" /> Edit
+                                </Link>
                               </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
+                            )}
+                            <DropdownMenuItem asChild>
+                              <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}?preview=true`} className="flex items-center gap-2">
+                                <Eye className="h-4 w-4" /> Preview
+                              </Link>
+                            </DropdownMenuItem>
+                            {isCompleted && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}/results`} className="flex items-center gap-2">
+                                  <Trophy className="h-4 w-4" /> View Results
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {(isScheduled || isOngoing || isCompleted) && <DropdownMenuSeparator />}
+                            {isScheduled && (
+                              <DropdownMenuItem onClick={() => handleStart(test.id)} className="flex items-center gap-2 text-primary focus:text-primary">
+                                <Play className="h-4 w-4" /> Start Early
+                              </DropdownMenuItem>
+                            )}
+                            {isOngoing && (
+                              <DropdownMenuItem onClick={() => handleEnd(test.id)} className="flex items-center gap-2 text-red-600 focus:bg-red-500/10 focus:text-red-600">
+                                <Ban className="h-4 w-4" /> End Test Now
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDelete(test.id)} className="flex items-center gap-2 text-destructive focus:text-destructive">
+                              <Trash2 className="h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    }
+                  />
+                );
               })}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

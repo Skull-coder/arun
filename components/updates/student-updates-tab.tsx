@@ -4,10 +4,8 @@ import { useRef, useEffect } from "react";
 import { useGetUpdates } from "@/hooks/tanstackQuery/update/use-get-updates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Bot, Sparkles, Megaphone } from "lucide-react";
-import { format } from "date-fns";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { Sparkles, Megaphone } from "lucide-react";
+import { UpdateMessage } from "./update-message";
 
 export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
   // Fetch with markAsRead = true
@@ -92,71 +90,21 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
                   </div>
                 )}
 
-                {u.isSystem ? (
-                  <div className={cn(
-                    "bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-start gap-4 shadow-sm transition-all max-w-3xl mx-auto w-full",
-                    isNew ? "ring-2 ring-primary/20" : ""
-                  )}>
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bot className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-primary">System Automated</span>
-                          {isNew && <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">New</span>}
-                        </div>
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {format(new Date(u.createdAt), "MMM d, p")}
-                        </span>
-                      </div>
-                      <p className="text-[15px] leading-relaxed text-foreground/90 mt-2 text-center">
-                        {u.content}
-                      </p>
-                      {u.referenceType === "test" && u.referenceId && (
-                        <div className="flex justify-center mt-4">
-                          <Button asChild size="sm" variant="default" className="shadow-sm">
-                            <Link href={`/dashboard/classroom/${classroomId}/test/${u.referenceId}/lobby`}>
-                              Go to Test
-                            </Link>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className={cn(
-                    "bg-card border border-border rounded-2xl p-6 shadow-sm transition-all",
-                    isNew ? "ring-2 ring-primary/20" : ""
-                  )}>
-                    <div className="flex gap-4">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0 flex items-center justify-center text-white font-bold text-sm">
-                        ED
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">Educator</span>
-                              {isNew && <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">New</span>}
-                            </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              {format(new Date(u.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                              {u.isEdited && (
-                                <span className="bg-muted px-1.5 py-0.5 rounded-sm">Edited</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <p className="text-[15px] whitespace-pre-wrap leading-relaxed mt-2">
-                          {u.content}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <UpdateMessage
+                  update={u}
+                  classroomId={classroomId}
+                  isNew={isNew}
+                  ctaHref={
+                    u.isSystem && u.referenceType === "test" && u.referenceId
+                      ? `/dashboard/classroom/${classroomId}/test/${u.referenceId}/lobby`
+                      : undefined
+                  }
+                  ctaLabel={
+                    u.isSystem && u.referenceType === "test" && u.referenceId
+                      ? "Go to Test"
+                      : undefined
+                  }
+                />
               </div>
             );
           })

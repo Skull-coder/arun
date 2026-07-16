@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { DashboardCard } from "@/components/ui/dashboard-card";
 import {
   Select,
   SelectContent,
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ClipboardList, Play, Eye, Clock, Search, Trophy } from "lucide-react";
+import { ClipboardList, Eye, Trophy, CalendarDays, Hash, Clock, Target, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -70,24 +70,24 @@ export function StudentTestsTab({ classroomId }: { classroomId: number }) {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-foreground">Classroom Tests</h2>
           <p className="text-sm text-muted-foreground mt-1">
             View and participate in tests assigned by your educator.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tests..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 w-48"
+              className="pl-9 h-9 w-full sm:w-48"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {[
               { key: "all", label: "All Tests" },
               { key: "scheduled", label: "Upcoming" },
@@ -113,33 +113,26 @@ export function StudentTestsTab({ classroomId }: { classroomId: number }) {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="rounded-md border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Questions</TableHead>
-                <TableHead>Total Marks</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Scheduled At</TableHead>
-                <TableHead className="text-right" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="flex flex-col h-full border-border/60 shadow-sm">
+              <CardHeader className="pb-4 gap-2 flex-row justify-between items-start space-y-0">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </CardHeader>
+              <CardContent className="pb-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                </div>
+              </CardContent>
+              <CardFooter className="pt-4 border-t mt-auto flex justify-between items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-20" />
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       )}
 
@@ -156,77 +149,72 @@ export function StudentTestsTab({ classroomId }: { classroomId: number }) {
         </div>
       )}
 
-      {/* Tests table */}
+      {/* Tests grid */}
       {!isLoading && tests && tests.length > 0 && (
-        <div className="rounded-md border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Questions</TableHead>
-                <TableHead>Total Marks</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Scheduled At</TableHead>
-                <TableHead className="text-right" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTests?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                    No tests match your filter.
-                  </TableCell>
-                </TableRow>
-              )}
+        <>
+          {filteredTests?.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-4" />
+              <p className="text-muted-foreground">No tests match your filters.</p>
+              <Button variant="link" onClick={() => { setSearch(""); setStatusFilter("all"); }}>
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredTests?.map((test: any) => {
                 const displayStatus = test.status;
                 const isCompleted = displayStatus === "completed";
 
                 return (
-                  <TableRow key={test.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium text-foreground">
-                      {test.title}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={displayStatus} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.totalQuestions ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.totalMarks ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.durationMinutes} min
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {test.scheduledAt
-                        ? format(new Date(test.scheduledAt), "MMM d, yyyy HH:mm")
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" className="gap-2" asChild>
-                          <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}/lobby`}>
-                            <Eye className="h-4 w-4" /> View
+                  <DashboardCard
+                    key={test.id}
+                    title={test.title}
+                    statusNode={<StatusBadge status={displayStatus} />}
+                    stats={[
+                      {
+                        icon: Hash,
+                        value: test.totalQuestions ?? "—",
+                        label: "Questions"
+                      },
+                      {
+                        icon: Target,
+                        value: test.totalMarks ?? "—",
+                        label: "Marks"
+                      },
+                      {
+                        icon: Clock,
+                        value: test.durationMinutes,
+                        label: "Mins"
+                      }
+                    ]}
+                    footerLeft={
+                      <>
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        {test.scheduledAt ? format(new Date(test.scheduledAt), "MMM d, h:mm a") : "Anytime"}
+                      </>
+                    }
+                    footerRight={
+                      isCompleted ? (
+                        <Button size="sm" className="gap-2 h-8" asChild>
+                          <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}/results`}>
+                            <Trophy className="h-3.5 w-3.5" /> Results
                           </Link>
                         </Button>
-                        {isCompleted && (
-                          <Button variant="secondary" size="sm" className="gap-2" asChild>
-                            <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}/results`}>
-                              <Trophy className="h-4 w-4" /> Results
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                      ) : (
+                        <Button size="sm" variant={displayStatus === "ongoing" ? "default" : "outline"} className={cn("gap-2 h-8", displayStatus === "ongoing" && "bg-emerald-600 hover:bg-emerald-700 text-white")} asChild>
+                          <Link href={`/dashboard/classroom/${classroomId}/test/${test.id}/lobby`}>
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </Link>
+                        </Button>
+                      )
+                    }
+                  />
                 );
               })}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

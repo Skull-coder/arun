@@ -79,23 +79,23 @@ export default function QuizResultsPage() {
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto bg-muted/20 p-6 md:p-10 flex flex-col items-center">
+      <main className="flex-1 overflow-y-auto bg-muted/20 p-4 md:p-10 flex flex-col items-center">
         <div className="w-full max-w-4xl">
           
-          <div className="text-center mb-10">
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-4">Quiz Leaderboard</h2>
-            <p className="text-muted-foreground text-lg">Final standings for all participants</p>
+          <div className="text-center mb-8 md:mb-10">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-2 md:mb-4">Quiz Leaderboard</h2>
+            <p className="text-muted-foreground text-sm md:text-lg">Final standings for all participants</p>
           </div>
 
           {/* PODIUM (Top 3) */}
           {top3.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-10 items-end">
               {/* Silver (Rank 2) */}
               {top3[1] && (
                 <div className="order-2 md:order-1 flex flex-col items-center">
                   <PodiumCard entry={top3[1]} rank={2} color="bg-slate-400" currentUserId={user?.id} />
-                  <div className="w-full h-32 bg-slate-300/30 rounded-t-lg border border-slate-300/50 mt-4 flex items-center justify-center">
-                    <span className="text-4xl font-black text-slate-400/50">2</span>
+                  <div className="w-full h-8 md:h-32 bg-slate-300/30 rounded-t-lg border border-slate-300/50 mt-2 md:mt-4 flex items-center justify-center">
+                    <span className="text-xl md:text-4xl font-black text-slate-400/50">2</span>
                   </div>
                 </div>
               )}
@@ -103,9 +103,9 @@ export default function QuizResultsPage() {
               {/* Gold (Rank 1) */}
               {top3[0] && (
                 <div className="order-1 md:order-2 flex flex-col items-center">
-                  <PodiumCard entry={top3[0]} rank={1} color="bg-amber-500" currentUserId={user?.id} icon={<Crown className="h-8 w-8 text-white mb-1" />} />
-                  <div className="w-full h-48 bg-amber-500/20 rounded-t-lg border border-amber-500/40 mt-4 flex items-center justify-center">
-                    <span className="text-5xl font-black text-amber-500/50">1</span>
+                  <PodiumCard entry={top3[0]} rank={1} color="bg-amber-500" currentUserId={user?.id} icon={<Crown className="h-6 w-6 md:h-8 md:w-8 text-white mb-1" />} />
+                  <div className="w-full h-10 md:h-48 bg-amber-500/20 rounded-t-lg border border-amber-500/40 mt-2 md:mt-4 flex items-center justify-center">
+                    <span className="text-2xl md:text-5xl font-black text-amber-500/50">1</span>
                   </div>
                 </div>
               )}
@@ -114,8 +114,8 @@ export default function QuizResultsPage() {
               {top3[2] && (
                 <div className="order-3 md:order-3 flex flex-col items-center">
                   <PodiumCard entry={top3[2]} rank={3} color="bg-orange-700" currentUserId={user?.id} />
-                  <div className="w-full h-24 bg-orange-700/20 rounded-t-lg border border-orange-700/40 mt-4 flex items-center justify-center">
-                    <span className="text-4xl font-black text-orange-700/40">3</span>
+                  <div className="w-full h-6 md:h-24 bg-orange-700/20 rounded-t-lg border border-orange-700/40 mt-2 md:mt-4 flex items-center justify-center">
+                    <span className="text-lg md:text-4xl font-black text-orange-700/40">3</span>
                   </div>
                 </div>
               )}
@@ -135,29 +135,29 @@ export default function QuizResultsPage() {
                       key={entry.studentId} 
                       ref={isMe ? currentUserRowRef : null}
                       className={cn(
-                        "flex items-center gap-4 px-6 py-4 transition-colors",
+                        "flex items-center gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-4 transition-colors",
                         isMe ? "bg-primary/5 ring-inset ring-2 ring-primary relative" : "hover:bg-muted/50"
                       )}
                     >
                       {/* Rank Number */}
-                      <div className="w-10 font-mono text-lg font-bold text-muted-foreground text-right shrink-0">
+                      <div className="w-8 md:w-10 font-mono text-base md:text-lg font-bold text-muted-foreground text-right shrink-0">
                         #{rank}
                       </div>
                       
                       {/* Name + Roll Number */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={cn("font-semibold truncate text-lg", isMe ? "text-primary" : "text-foreground")}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className={cn("font-semibold truncate text-base md:text-lg", isMe ? "text-primary" : "text-foreground")}>
                             {[entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown Student"}
                           </p>
                           {isMe && (
-                            <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                            <span className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0">
                               You
                             </span>
                           )}
                         </div>
                         {entry.rollNumber && (
-                          <span className="inline-block font-mono text-xs bg-muted text-muted-foreground rounded px-2 py-0.5 mt-1 max-w-full truncate">
+                          <span className="inline-block font-mono text-[10px] md:text-xs bg-muted text-muted-foreground rounded px-2 py-0.5 mt-1 max-w-full truncate">
                             {entry.rollNumber}
                           </span>
                         )}
@@ -165,10 +165,10 @@ export default function QuizResultsPage() {
 
                       {/* Score */}
                       <div className="text-right shrink-0">
-                        <span className={cn("text-xl font-bold", isMe ? "text-primary" : "text-foreground")}>
+                        <span className={cn("text-lg md:text-xl font-bold", isMe ? "text-primary" : "text-foreground")}>
                           {entry.totalScore}
                         </span>
-                        <span className="text-sm text-muted-foreground ml-1">pts</span>
+                        <span className="text-xs md:text-sm text-muted-foreground ml-1 hidden sm:inline">pts</span>
                       </div>
                     </li>
                   );
@@ -198,7 +198,7 @@ function PodiumCard({ entry, rank, color, currentUserId, icon }: { entry: any, r
   
   return (
     <div className={cn(
-      "w-full flex flex-col items-center p-4 rounded-xl shadow-lg border-2 text-center transition-transform hover:-translate-y-1 relative",
+      "w-full flex flex-col items-center p-3 md:p-4 rounded-xl shadow-lg border-2 text-center transition-transform hover:-translate-y-1 relative",
       color,
       isMe ? "ring-4 ring-primary ring-offset-2 ring-offset-background" : "border-transparent"
     )}>
@@ -207,16 +207,16 @@ function PodiumCard({ entry, rank, color, currentUserId, icon }: { entry: any, r
           You
         </div>
       )}
-      {icon || <Medal className="h-8 w-8 text-white mb-1" />}
-      <p className="font-bold text-white text-lg leading-tight truncate w-full" title={name}>{name}</p>
+      {icon || <Medal className="h-6 w-6 md:h-8 md:w-8 text-white mb-1" />}
+      <p className="font-bold text-white text-base md:text-lg leading-tight truncate w-full" title={name}>{name}</p>
       {entry.rollNumber && (
-        <span className="inline-block font-mono text-xs bg-black/20 text-white rounded px-2 py-0.5 mt-1 truncate max-w-full">
+        <span className="inline-block font-mono text-[10px] md:text-xs bg-black/20 text-white rounded px-2 py-0.5 mt-1 truncate max-w-full">
           {entry.rollNumber}
         </span>
       )}
-      <div className="mt-3 bg-black/20 px-3 py-1 rounded-full w-full">
-        <span className="text-xl font-black text-white">{entry.totalScore}</span>
-        <span className="text-xs text-white/80 ml-1">pts</span>
+      <div className="mt-2 md:mt-3 bg-black/20 px-2 md:px-3 py-1 rounded-full w-full">
+        <span className="text-lg md:text-xl font-black text-white">{entry.totalScore}</span>
+        <span className="text-[10px] md:text-xs text-white/80 ml-1 hidden sm:inline">pts</span>
       </div>
     </div>
   );

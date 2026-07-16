@@ -8,15 +8,10 @@ import { useEditUpdate } from "@/hooks/tanstackQuery/update/use-edit-update";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { Loader2, Send, MoreVertical, Edit2, Trash2, Bot, Megaphone } from "lucide-react";
+import { Loader2, Send, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { UpdateMessage } from "./update-message";
 
 export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
   const { data, isLoading } = useGetUpdates(classroomId, true);
@@ -106,117 +101,35 @@ export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
             </div>
           </div>
         ) : (
-          sortedUpdates.map((u) => {
-            const isSystem = u.isSystem;
-            const isEditing = editingId === u.id;
-
-            if (isSystem) {
-              return (
-                <div key={u.id} className="flex justify-center my-6">
-                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex items-start gap-4 shadow-sm max-w-3xl w-full">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bot className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-primary">System Automated</span>
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {format(new Date(u.createdAt), "MMM d, p")}
-                        </span>
-                      </div>
-                      <p className="text-[15px] leading-relaxed text-foreground/90 mt-2 text-center">
-                        {u.content}
-                      </p>
-                      {u.referenceType === "test" && u.referenceId && (
-                        <div className="flex justify-center mt-4">
-                          <Button asChild size="sm" variant="default" className="shadow-sm">
-                            <Link href={`/dashboard/classroom/${classroomId}/test/${u.referenceId}`}>
-                              View Test
-                            </Link>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={u.id} className="group bg-card border border-border rounded-2xl p-6 shadow-sm hover:border-primary/30 transition-colors">
-                <div className="flex gap-4">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0 flex items-center justify-center text-white font-bold text-sm">
-                    ED
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="mb-2">
-                        <div className="font-semibold">You</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          {format(new Date(u.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                          {u.isEdited && (
-                            <span className="bg-muted px-1.5 py-0.5 rounded-sm">Edited</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {!isEditing && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => {
-                                setEditingId(u.id);
-                                setEditContent(u.content);
-                              }}>
-                                <Edit2 className="h-4 w-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => deleteUpdate.mutate({ classroomId, updateId: u.id })}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {isEditing ? (
-                      <div className="bg-background border border-primary/30 rounded-xl p-3 mt-2 shadow-sm focus-within:border-primary transition-colors">
-                        <Textarea 
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="min-h-[100px] border-none focus-visible:ring-0 p-0 resize-none shadow-none text-base"
-                          autoFocus
-                        />
-                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border/50">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleEditSave(u.id)}
-                            disabled={editUpdate.isPending}
-                          >
-                            {editUpdate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-[15px] whitespace-pre-wrap leading-relaxed">
-                        {u.content}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+          sortedUpdates.map((u) => (
+            <UpdateMessage
+              key={u.id}
+              update={u}
+              classroomId={classroomId}
+              canEdit={true}
+              isEditing={editingId === u.id}
+              editContent={editContent}
+              onEditContentChange={setEditContent}
+              onStartEdit={() => {
+                setEditingId(u.id);
+                setEditContent(u.content);
+              }}
+              onEditCancel={() => setEditingId(null)}
+              onEditSave={() => handleEditSave(u.id)}
+              onDelete={() => deleteUpdate.mutate({ classroomId, updateId: u.id })}
+              isSaving={editUpdate.isPending}
+              ctaHref={
+                u.isSystem && u.referenceType === "test" && u.referenceId
+                  ? `/dashboard/classroom/${classroomId}/test/${u.referenceId}`
+                  : undefined
+              }
+              ctaLabel={
+                u.isSystem && u.referenceType === "test" && u.referenceId
+                  ? "View Test"
+                  : undefined
+              }
+            />
+          ))
         )}
         <div ref={endOfMessagesRef} />
       </div>

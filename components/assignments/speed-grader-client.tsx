@@ -21,11 +21,14 @@ import {
   Download,
   Loader2,
   ChevronDown,
+  Menu,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 type Submission = {
   submission: {
@@ -229,6 +232,10 @@ export function SpeedGraderClient({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Mobile Sheet states
+  const [studentsSheetOpen, setStudentsSheetOpen] = useState(false);
+  const [feedbackSheetOpen, setFeedbackSheetOpen] = useState(false);
 
   const assignment = assignmentsData?.assignments?.find((a: any) => a.id === assignmentId);
   const submissions: Submission[] = submissionsData?.submissions ?? [];
@@ -263,98 +270,144 @@ export function SpeedGraderClient({
     document.body.removeChild(link);
   };
 
+  const StudentListPanel = () => (
+    <div className="flex flex-col h-full overflow-hidden bg-card">
+      {/* Header */}
+      <div className="p-4 border-b border-border space-y-3 shrink-0">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
+            <Link href={`/dashboard/classroom/${classroomId}/assignments`}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm truncate">{assignment?.title ?? "Assignment"}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" /> {submissions.length} submissions
+            </p>
+          </div>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search student..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+
+        {/* Status filter */}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setSelectedIndex(0); }}
+            className="w-full h-8 rounded-md border border-border bg-background px-3 pr-8 text-sm appearance-none cursor-pointer"
+          >
+            {STATUS_FILTERS.map((f) => (
+              <option key={f} value={f}>
+                {f === "all" ? "All Statuses" : STATUS_CONFIG[f]?.label ?? f}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Student list */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="p-3 space-y-2">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">No submissions yet.</div>
+        ) : (
+          filtered.map((s, idx) => (
+            <button
+              key={s.submission.id}
+              onClick={() => { setSelectedIndex(idx); setStudentsSheetOpen(false); }}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-border/50",
+                selectedIndex === idx
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted/50 text-foreground"
+              )}
+            >
+              <StatusDot status={s.submission.status} />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {s.student.firstName} {s.student.lastName}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {s.student.rollNumber || s.student.email}
+                </p>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Export CSV */}
+      <div className="p-3 border-t border-border shrink-0">
+        <Button variant="outline" size="sm" className="w-full gap-2" onClick={exportCSV} disabled={submissions.length === 0}>
+          <Download className="h-3.5 w-3.5" /> Export CSV
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-
-      {/* Left Sidebar — Student List */}
-      <aside className="w-72 shrink-0 flex flex-col border-r border-border bg-card overflow-hidden">
-        {/* Header */}
-        <div className="p-4 border-b border-border space-y-3">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
-              <Link href={`/dashboard/classroom/${classroomId}/assignments`}>
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <div className="min-w-0">
-              <p className="font-semibold text-sm truncate">{assignment?.title ?? "Assignment"}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Users className="h-3 w-3" /> {submissions.length} submissions
-              </p>
-            </div>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search student..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
-              className="pl-8 h-8 text-sm"
-            />
-          </div>
-
-          {/* Status filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setSelectedIndex(0); }}
-              className="w-full h-8 rounded-md border border-border bg-background px-3 pr-8 text-sm appearance-none cursor-pointer"
-            >
-              {STATUS_FILTERS.map((f) => (
-                <option key={f} value={f}>
-                  {f === "all" ? "All Statuses" : STATUS_CONFIG[f]?.label ?? f}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          </div>
-        </div>
-
-        {/* Student list */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="p-3 space-y-2">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">No submissions yet.</div>
-          ) : (
-            filtered.map((s, idx) => (
-              <button
-                key={s.submission.id}
-                onClick={() => setSelectedIndex(idx)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-border/50",
-                  selectedIndex === idx
-                    ? "bg-primary/10 text-primary"
-                    : "hover:bg-muted/50 text-foreground"
-                )}
-              >
-                <StatusDot status={s.submission.status} />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {s.student.firstName} {s.student.lastName}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {s.student.rollNumber || s.student.email}
-                  </p>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Export CSV */}
-        <div className="p-3 border-t border-border">
-          <Button variant="outline" size="sm" className="w-full gap-2" onClick={exportCSV} disabled={submissions.length === 0}>
-            <Download className="h-3.5 w-3.5" /> Export CSV
-          </Button>
-        </div>
+      {/* Left Sidebar — Student List (Desktop) */}
+      <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-card overflow-hidden">
+        <StudentListPanel />
       </aside>
 
       {/* Center — PDF Viewer */}
       <main className="flex-1 flex flex-col overflow-hidden bg-muted/10">
+        {/* Mobile Toolbar */}
+        <div className="lg:hidden flex items-center justify-between border-b border-border bg-card px-3 py-2 shrink-0">
+          <Sheet open={studentsSheetOpen} onOpenChange={setStudentsSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+                <Menu className="h-4 w-4" />
+                <span className="text-xs font-medium">Students</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{submissions.length}</Badge>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetTitle className="sr-only">Students List</SheetTitle>
+              <StudentListPanel />
+            </SheetContent>
+          </Sheet>
+
+          <Sheet open={feedbackSheetOpen} onOpenChange={setFeedbackSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+                <span className="text-xs font-medium">Feedback</span>
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80 p-0 sm:w-96">
+              <SheetTitle className="sr-only">Feedback and Grading</SheetTitle>
+              {selected ? (
+                <FeedbackPanel
+                  key={selected.submission.id}
+                  submission={selected}
+                  classroomId={classroomId}
+                  assignmentId={assignmentId}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-6 text-center h-full">
+                  Select a student to grade.
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+        </div>
+
         {!selected ? (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
             <FileText className="h-12 w-12 opacity-30" />
@@ -362,32 +415,32 @@ export function SpeedGraderClient({
           </div>
         ) : (
           <>
-            <div className="px-6 py-3 border-b border-border bg-card flex items-center justify-between shrink-0">
-              <p className="text-sm font-medium text-muted-foreground">{selected.submission.fileName}</p>
+            <div className="px-4 lg:px-6 py-3 border-b border-border bg-card flex items-center justify-between shrink-0">
+              <p className="text-sm font-medium text-muted-foreground truncate mr-2">{selected.submission.fileName}</p>
               <a
                 href={selected.viewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold"
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold shrink-0"
               >
-                <Download className="h-3.5 w-3.5" /> Open in new tab
+                <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Open in new tab</span>
               </a>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden relative">
               {selected.submission.fileName.endsWith(".pdf") ? (
                 <iframe
                   key={selected.submission.id}
                   src={selected.viewUrl}
-                  className="w-full h-full border-none"
+                  className="w-full h-full border-none absolute inset-0"
                   title="Assignment PDF"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full p-8">
+                <div className="flex items-center justify-center h-full p-4 lg:p-8 overflow-y-auto">
                   <img
                     key={selected.submission.id}
                     src={selected.viewUrl}
                     alt="Assignment"
-                    className="max-w-full max-h-full object-contain rounded-xl shadow-lg"
+                    className="max-w-full object-contain rounded-xl shadow-lg"
                   />
                 </div>
               )}
@@ -396,8 +449,8 @@ export function SpeedGraderClient({
         )}
       </main>
 
-      {/* Right panel — Feedback & actions */}
-      <aside className="w-80 shrink-0 border-l border-border bg-card flex flex-col overflow-hidden">
+      {/* Right panel — Feedback & actions (Desktop) */}
+      <aside className="hidden lg:flex w-80 shrink-0 border-l border-border bg-card flex-col overflow-hidden">
         {selected ? (
           <FeedbackPanel
             key={selected.submission.id}

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { AppSidebar, type NavItem } from "@/components/app-sidebar";
+import { AppSidebar, MobileAppSidebar, type NavItem } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,19 +27,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DashboardCard } from "@/components/ui/dashboard-card";
 import { useGetQuizzes } from "@/hooks/tanstackQuery/quiz/use-get-quizzes";
 import { useDeleteQuiz } from "@/hooks/tanstackQuery/quiz/use-delete-quiz";
 import Link from "next/link";
 import {
-  BookOpen,
+  FileQuestion,
   GraduationCap,
   BarChart2,
   Plus,
@@ -49,6 +49,7 @@ import {
   Search,
   Hash,
   Clock,
+  Timer,
   Filter,
   Trophy,
   Copy,
@@ -96,7 +97,7 @@ function formatDate(d: string) {
 export default function EducatorDashboard({ user }: Props) {
   const router = useRouter();
   const navItems: NavItem[] = [
-    { label: "Library", icon: BookOpen, active: true, onClick: () => router.push("/dashboard") },
+    { label: "My Quizzes", icon: Timer, active: true, onClick: () => router.push("/dashboard") },
     { label: "Classrooms", icon: GraduationCap, active: false, onClick: () => router.push("/dashboard/classrooms") },
     { label: "Reports", icon: BarChart2, soon: true },
   ];
@@ -157,71 +158,113 @@ export default function EducatorDashboard({ user }: Props) {
       {/* ── MAIN ── */}
       <main className="flex flex-1 flex-col overflow-hidden bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-8 py-5">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">My Quiz Library</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {isLoading ? "Loading…" : `${quizzes?.length ?? 0} quiz${quizzes?.length !== 1 ? "zes" : ""} created`}
-            </p>
+        <div className="flex items-center justify-between border-b border-border px-4 md:px-8 py-4 md:py-5 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="md:hidden flex items-center">
+              <MobileAppSidebar user={user} navItems={navItems} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">My Quizzes</h1>
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                {isLoading ? "Loading…" : `Manage and track your ${quizzes?.length ?? 0} quiz${quizzes?.length !== 1 ? "zes" : ""}`}
+              </p>
+            </div>
           </div>
-          <Button asChild size="sm" className="gap-2">
+          <Button asChild size="sm" className="gap-2 shrink-0">
             <Link href="/dashboard/quiz/new">
               <Plus className="h-4 w-4" />
-              Create Quiz
+              <span className="hidden sm:inline">Create Quiz</span>
             </Link>
           </Button>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3 border-b border-border bg-card/50 px-8 py-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-b border-border bg-card/50 px-4 md:px-8 py-3 shrink-0">
+          <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search by title, description, or code…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm"
+              className="pl-9 h-9 text-sm w-full"
             />
           </div>
+          
           <div className="flex items-center gap-2">
-            {STATUS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setStatusFilter(opt.value)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
-                  statusFilter === opt.value
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
-                )}
+            {/* Desktop Filters */}
+            <div className="hidden md:flex items-center gap-2">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                    statusFilter === opt.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Filters Dropdown */}
+            <div className="md:hidden flex-1 sm:flex-none">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-full sm:w-[150px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(search || statusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground text-xs shrink-0"
+                onClick={() => { setSearch(""); setStatusFilter("all"); }}
               >
-                {opt.label}
-              </button>
-            ))}
+                Clear
+              </Button>
+            )}
           </div>
-          {(search || statusFilter !== "all") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground text-xs"
-              onClick={() => { setSearch(""); setStatusFilter("all"); }}
-            >
-              Clear
-            </Button>
-          )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
           {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="flex flex-col h-full border-border/60 shadow-sm">
+                  <CardHeader className="pb-4 gap-2 flex-row justify-between items-start space-y-0">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-4 border-t mt-auto flex justify-between items-center">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-20" />
+                  </CardFooter>
+                </Card>
               ))}
             </div>
           ) : !quizzes || quizzes.length === 0 ? (
             // Empty state — no quizzes at all
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex flex-col items-center justify-center py-12 md:py-24 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                 <BookOpen className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -238,7 +281,7 @@ export default function EducatorDashboard({ user }: Props) {
             </div>
           ) : filtered.length === 0 ? (
             // Empty state — filtered results empty
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex flex-col items-center justify-center py-12 md:py-24 text-center">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
                 <Search className="h-6 w-6 text-muted-foreground" />
               </div>
@@ -248,66 +291,49 @@ export default function EducatorDashboard({ user }: Props) {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[35%]">Title</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Questions</TableHead>
-                  <TableHead>Join Code</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((quiz: any) => (
-                  <TableRow key={quiz.id} className="group">
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{quiz.title}</p>
-                        {quiz.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                            {quiz.description}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filtered.map((quiz: any) => {
+                const isCompleted = quiz.status === "completed";
+                const stats = [
+                  {
+                    icon: Hash,
+                    value: quiz.totalQuestions ?? 0,
+                    label: "Questions"
+                  }
+                ];
+                if (!isCompleted) {
+                  stats.push({
+                    icon: Copy,
+                    value: <code className="font-mono text-sm font-semibold text-foreground leading-none mt-0.5">{quiz.joinCode}</code>,
+                    label: "Join Code"
+                  });
+                }
+
+                return (
+                  <DashboardCard
+                    key={quiz.id}
+                    title={quiz.title}
+                    description={quiz.description}
+                    statusNode={
                       <Badge variant={statusVariant(quiz.status ?? "draft")} className="text-xs">
                         {statusLabel(quiz.status ?? "draft")}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Hash className="h-3.5 w-3.5" />
-                        {quiz.totalQuestions ?? 0}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono tracking-wider text-foreground">
-                        {quiz.joinCode}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
+                    }
+                    stats={stats}
+                    footerLeft={
+                      <>
+                        <Clock className="h-3.5 w-3.5" />
                         {formatDate(quiz.createdAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(quiz.updatedAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1.5">
-                        {quiz.status === "completed" ? (
+                      </>
+                    }
+                    footerRight={
+                      <>
+                        {isCompleted ? (
                           <>
                             <Button asChild variant="default" size="sm" className="h-8 gap-1.5 text-xs">
                               <Link href={`/quiz/${quiz.id}/results`}>
                                 <Trophy className="h-3.5 w-3.5" />
-                                View Results
+                                Results
                               </Link>
                             </Button>
                             <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
@@ -338,18 +364,16 @@ export default function EducatorDashboard({ user }: Props) {
                           size="sm"
                           className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                           disabled={deletingId === quiz.id}
-                          onClick={() => {
-                            handleDelete(quiz);
-                          }}
+                          onClick={() => handleDelete(quiz)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </>
+                    }
+                  />
+                );
+              })}
+            </div>
           )}
         </div>
       </main>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AppSidebar, type NavItem } from "@/components/app-sidebar";
+import { AppSidebar, MobileAppSidebar, type NavItem } from "@/components/app-sidebar";
 import { EducatorClassrooms } from "./educator-classrooms";
 import { StudentClassrooms } from "./student-classrooms";
 import { BookOpen, GraduationCap, BarChart2 } from "lucide-react";
@@ -40,8 +40,12 @@ export default function ClassroomsPageClient({ user }: Props) {
       <AppSidebar user={user} navItems={navItems} />
 
       {/* ── MAIN ── */}
-      <main className="flex flex-1 flex-col overflow-hidden bg-background p-8">
-        {isEducator ? <EducatorClassrooms /> : <StudentClassrooms />}
+      <main className="flex flex-1 flex-col overflow-hidden bg-background p-4 md:p-8">
+        {isEducator ? (
+          <EducatorClassrooms mobileSidebar={<MobileAppSidebar user={user} navItems={navItems} />} />
+        ) : (
+          <StudentClassrooms mobileSidebar={<MobileAppSidebar user={user} navItems={navItems} />} />
+        )}
       </main>
     </div>
   );

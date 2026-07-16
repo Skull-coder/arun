@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   Dialog,
   DialogContent,
@@ -73,7 +74,7 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
     setForm({
       title: a.title,
       description: a.description ?? "",
-      dueDate: a.dueDate ? format(new Date(a.dueDate), "yyyy-MM-dd") : "",
+      dueDate: a.dueDate ? new Date(a.dueDate).toISOString() : "",
     });
     setEditingAssignment(a);
     setShowForm(true);
@@ -136,12 +137,12 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">Assignments</h2>
           <p className="text-sm text-muted-foreground mt-0.5">{assignments.length} assignment{assignments.length !== 1 ? "s" : ""} created</p>
         </div>
-        <Button onClick={openCreate} className="gap-2 shadow-sm">
+        <Button onClick={openCreate} className="gap-2 shadow-sm w-full sm:w-auto">
           <Plus className="h-4 w-4" /> New Assignment
         </Button>
       </div>
@@ -212,19 +213,19 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
                 )}
 
                 {/* Footer */}
-                <div className="flex items-center justify-between mt-1">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 pt-3 border-t border-border/40 gap-3">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5" />
                       Created {format(new Date(a.createdAt), "MMM d, yyyy")}
                     </span>
                     {a.dueDate && (
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 font-medium">
                         Deadline: {format(new Date(a.dueDate), "MMM d, yyyy")}
                       </span>
                     )}
                   </div>
-                  <Button asChild variant="outline" size="sm" className="gap-1.5 h-8">
+                  <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 w-full sm:w-auto">
                     <Link href={`/dashboard/classroom/${classroomId}/assignments/${a.id}`}>
                       <Users className="h-3.5 w-3.5" /> View Submissions
                       <ArrowRight className="h-3.5 w-3.5" />
@@ -263,10 +264,10 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
             </div>
             <div className="space-y-1.5">
               <Label>Deadline (optional)</Label>
-              <Input
-                type="date"
-                value={form.dueDate}
-                onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+              <DateTimePicker
+                value={form.dueDate ? new Date(form.dueDate) : undefined}
+                onChange={(date) => setForm((f) => ({ ...f, dueDate: date ? date.toISOString() : "" }))}
+                placeholder="Select deadline date & time"
               />
             </div>
           </div>
