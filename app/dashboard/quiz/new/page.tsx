@@ -509,9 +509,57 @@ function NewQuizContent() {
       toast.error("Please enter a quiz title.");
       return;
     }
+    if (questions.length === 0) {
+      toast.error("Please add at least one question.");
+      return;
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.text.trim()) {
+        setActiveIdx(i);
+        return toast.error(`Question ${i + 1} is missing text.`);
+      }
+      
+      if (q.type === "single_choice" || q.type === "multi_choice") {
+        if (!q.config.options || q.config.options.length < 2) {
+          setActiveIdx(i);
+          return toast.error(`Question ${i + 1} must have at least 2 options.`);
+        }
+        if (q.config.options.some((o: any) => !o.text.trim())) {
+          setActiveIdx(i);
+          return toast.error(`Question ${i + 1} has one or more empty options.`);
+        }
+        if (q.type === "single_choice" && !q.correctAnswer) {
+          setActiveIdx(i);
+          return toast.error(`Question ${i + 1} needs a correct answer selected.`);
+        }
+        if (q.type === "multi_choice" && (!q.correctAnswer || (q.correctAnswer as string[]).length === 0)) {
+          setActiveIdx(i);
+          return toast.error(`Question ${i + 1} needs at least one correct answer selected.`);
+        }
+      }
+      
+      if (q.type === "sequence") {
+        if (!q.config.items || q.config.items.length < 2) {
+          setActiveIdx(i);
+          return toast.error(`Question ${i + 1} must have at least 2 sequence items.`);
+        }
+        if (q.config.items.some((o: any) => !o.text.trim())) {
+          setActiveIdx(i);
+          return toast.error(`Question ${i + 1} has one or more empty sequence items.`);
+        }
+      }
+      
+      if (q.type === "text" && !(q.correctAnswer as string).trim()) {
+        setActiveIdx(i);
+        return toast.error(`Question ${i + 1} needs a correct answer text.`);
+      }
+    }
+
     const formatted = questions.map((q, idx) => ({
       type: q.type,
-      text: q.text || `Question ${idx + 1}`,
+      text: q.text.trim(),
       durationSeconds: Number(q.durationSeconds),
       marks: Number(q.marks),
       config: q.config,
