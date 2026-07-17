@@ -126,7 +126,7 @@ function QuestionReviewCard({ answerRow, index }: { answerRow: any; index: numbe
       </div>
 
       {/* Answer comparison */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className={cn("rounded-lg p-3 border text-xs space-y-1",
           isSkipped ? "border-border bg-muted/40"
           : isCorrect ? "border-green-500/30 bg-green-500/8"

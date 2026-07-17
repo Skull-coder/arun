@@ -79,7 +79,7 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
     { id: "tests", label: "Tests", icon: ClipboardList },
     { id: "assignments", label: "Assignments", icon: BookOpenCheck },
     { id: "updates", label: "Updates", icon: Bell, badgeCount: unreadCount },
-    { id: "people", label: "People", icon: Users },
+    { id: "people", label: "Classmates", icon: Users },
   ];
 
   const SidebarContent = ({ isMobile = false, onClose }: { isMobile?: boolean, onClose?: () => void }) => (

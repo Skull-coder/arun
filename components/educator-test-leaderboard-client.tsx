@@ -66,8 +66,8 @@ export function EducatorTestLeaderboardClient({ classroomId, testId }: { classro
   }
 
   return (
-    <div className="space-y-6 w-[80%] mx-auto py-8 px-4">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="space-y-6 w-full lg:w-[80%] max-w-6xl mx-auto py-6 sm:py-8 px-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 sm:mb-8">
         <Button variant="outline" size="icon" asChild className="shrink-0">
           <Link href={`/dashboard/classroom/${classroomId}`}>
             <ArrowLeft className="h-4 w-4" />
@@ -82,8 +82,8 @@ export function EducatorTestLeaderboardClient({ classroomId, testId }: { classro
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name or roll number..."
@@ -109,8 +109,8 @@ export function EducatorTestLeaderboardClient({ classroomId, testId }: { classro
           <p className="text-muted-foreground">None of the students have submitted this test.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden bg-card">
-          <Table>
+        <div className="rounded-xl border border-border overflow-x-auto bg-card">
+          <Table className="min-w-[600px]">
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="w-[100px]">Rank</TableHead>
