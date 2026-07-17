@@ -7,7 +7,6 @@ import { useGetMySession } from "@/hooks/tanstackQuery/test/use-get-my-session";
 import { useSubmitTest } from "@/hooks/tanstackQuery/test/use-submit-test";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -19,6 +18,7 @@ import {
   CheckCircle2,
   Send,
   Loader2,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 
 // ─── Live test timer ──────────────────────────────────────────────────────────
@@ -65,7 +71,6 @@ function useTestTimer(endAt: string | null, onExpire: () => void) {
       }
     };
 
-    // Run tick immediately to sync, then start interval
     tick();
     const interval = setInterval(tick, 1000);
     return () => {
@@ -83,7 +88,7 @@ function useTestTimer(endAt: string | null, onExpire: () => void) {
 
 // ─── Answer helpers ───────────────────────────────────────────────────────────
 
-type Answers = Record<number, any>; // questionIndex → answer value
+type Answers = Record<number, any>;
 
 function isAnswered(answer: any): boolean {
   if (answer === undefined || answer === null) return false;
@@ -96,7 +101,7 @@ function isAnswered(answer: any): boolean {
 
 function optionClass(selected: boolean) {
   return cn(
-    "w-full text-left rounded-lg border-2 px-4 py-3 text-sm transition-all duration-150",
+    "w-full text-left rounded-lg border-2 px-3 sm:px-4 py-2.5 sm:py-3 text-sm transition-all duration-150",
     selected
       ? "border-primary bg-primary/8 font-medium text-foreground"
       : "border-border bg-card hover:border-primary/40 hover:bg-muted/40 text-foreground"
@@ -107,10 +112,10 @@ function optionClass(selected: boolean) {
 
 function SingleChoiceAnswer({ q, answer, onChange }: { q: any; answer: any; onChange: (v: any) => void }) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {(q.config?.options ?? []).map((opt: any, idx: number) => (
         <button key={opt.id} onClick={() => onChange(opt.id)} className={optionClass(answer === opt.id)}>
-          <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold mr-3",
+          <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold mr-2.5",
             answer === opt.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
             {"ABCDE"[idx]}
           </span>
@@ -128,13 +133,13 @@ function MultiChoiceAnswer({ q, answer, onChange }: { q: any; answer: any; onCha
     onChange(next);
   };
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-xs text-muted-foreground">Select all that apply</p>
       {(q.config?.options ?? []).map((opt: any, idx: number) => {
         const isChecked = selected.includes(opt.id);
         return (
           <button key={opt.id} onClick={() => toggle(opt.id)} className={optionClass(isChecked)}>
-            <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded border-2 mr-3 text-xs font-bold",
+            <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded border-2 mr-2.5 text-xs font-bold",
               isChecked ? "bg-primary border-primary text-primary-foreground" : "border-border text-transparent")}>✓</span>
             {opt.text || <span className="text-muted-foreground italic">Option {idx + 1}</span>}
           </button>
@@ -149,7 +154,7 @@ function TrueFalseAnswer({ answer, onChange }: { answer: any; onChange: (v: any)
     <div className="flex gap-3">
       {([true, false] as const).map((val) => (
         <button key={String(val)} onClick={() => onChange(val)}
-          className={cn("flex flex-1 items-center justify-center rounded-xl border-2 py-8 text-base font-semibold transition-all",
+          className={cn("flex flex-1 items-center justify-center rounded-xl border-2 py-5 sm:py-8 text-base font-semibold transition-all",
             answer === val ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted")}>
           {val ? "✓  True" : "✗  False"}
         </button>
@@ -162,7 +167,7 @@ function TextAnswer({ answer, onChange }: { answer: any; onChange: (v: any) => v
   return (
     <textarea value={answer ?? ""} onChange={(e) => onChange(e.target.value)}
       placeholder="Type your answer here…"
-      className="w-full rounded-lg border-2 border-border bg-card px-4 py-3 text-sm resize-none min-h-[120px] focus:outline-none focus:border-primary transition-colors" />
+      className="w-full rounded-lg border-2 border-border bg-card px-3 sm:px-4 py-3 text-sm resize-none min-h-[100px] sm:min-h-[120px] focus:outline-none focus:border-primary transition-colors" />
   );
 }
 
@@ -179,8 +184,8 @@ function SequenceAnswer({ q, answer, onChange }: { q: any; answer: any; onChange
   };
 
   return (
-    <div className="flex flex-col gap-3 max-w-2xl">
-      <p className="text-sm text-muted-foreground mb-2">Tap the items in the correct order to select them (1, 2, 3...):</p>
+    <div className="flex flex-col gap-2 sm:gap-3">
+      <p className="text-xs sm:text-sm text-muted-foreground mb-1">Tap items in the correct order (1, 2, 3...):</p>
       {items.map((item: any) => {
         const indexInOrder = sequenceOrder.indexOf(item.id);
         const isSelected = indexInOrder !== -1;
@@ -190,21 +195,20 @@ function SequenceAnswer({ q, answer, onChange }: { q: any; answer: any; onChange
             key={item.id}
             onClick={() => handleSequenceClick(item.id)}
             className={cn(
-              "flex items-center gap-4 p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm relative",
-              isSelected 
-                ? "border-primary bg-primary/10" 
+              "flex items-center gap-3 p-3 sm:p-4 rounded-xl border-2 text-left transition-all active:scale-95 shadow-sm",
+              isSelected
+                ? "border-primary bg-primary/10"
                 : "border-border bg-card hover:border-primary/40"
             )}
           >
             <div className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold z-10",
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
               isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
             )}>
               {isSelected ? indexInOrder + 1 : ""}
             </div>
-            
             <span className={cn(
-              "flex-1 text-base z-10",
+              "flex-1 text-sm sm:text-base",
               isSelected ? "font-medium text-foreground" : "text-muted-foreground"
             )}>
               {item.text}
@@ -212,6 +216,115 @@ function SequenceAnswer({ q, answer, onChange }: { q: any; answer: any; onChange
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ─── Question Palette (shared between sidebar and sheet) ─────────────────────
+
+function QuestionPalette({
+  questions,
+  answers,
+  activeQ,
+  onSelect,
+  test,
+  answeredCount,
+  isSubmitting,
+  onSubmit,
+}: {
+  questions: any[];
+  answers: Answers;
+  activeQ: number;
+  onSelect: (idx: number) => void;
+  test: any;
+  answeredCount: number;
+  isSubmitting: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-border">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Question Palette</p>
+        <div className="grid grid-cols-5 gap-1.5">
+          {questions.map((_: any, idx: number) => {
+            const answered = isAnswered(answers[idx]);
+            const active = activeQ === idx;
+            return (
+              <button key={idx} onClick={() => onSelect(idx)}
+                className={cn("flex h-8 w-full items-center justify-center rounded text-xs font-medium transition-all border",
+                  active ? "bg-primary text-primary-foreground border-primary"
+                  : answered ? "bg-green-500/15 text-green-700 border-green-500/30 hover:bg-green-500/25"
+                  : "bg-card text-foreground border-border hover:bg-muted")}>
+                {idx + 1}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-3 mt-3 flex-wrap">
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="h-2.5 w-2.5 rounded-sm bg-green-500/20 border border-green-500/30 inline-block" /> Answered
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="h-2.5 w-2.5 rounded-sm bg-card border border-border inline-block" /> Not answered
+          </span>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test Info</p>
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Answered</span>
+            <span className="font-semibold text-green-600">{answeredCount} / {questions.length}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Total Marks</span>
+            <span className="font-medium">{test.totalMarks ?? "—"}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Neg. Marking</span>
+            <span className={cn("font-medium", test.isNegativeMarking && "text-orange-500")}>{test.isNegativeMarking ? "Yes (-1)" : "No"}</span>
+          </div>
+        </div>
+        {test.isNegativeMarking && (
+          <div className="flex items-start gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/5 p-2 mt-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0 mt-0.5" />
+            <p className="text-[10px] text-orange-600 leading-relaxed">Wrong answers deduct 1 mark each.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-auto p-4 border-t border-border">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button className="w-full gap-2" size="sm" disabled={isSubmitting}>
+              <Send className="h-4 w-4" /> Submit Test
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Submit your test?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div>
+                  You have answered <strong>{answeredCount} of {questions.length}</strong> questions.
+                  {answeredCount < questions.length && (
+                    <p className="mt-1 text-orange-500 font-medium">
+                      ⚠ {questions.length - answeredCount} question{questions.length - answeredCount > 1 ? "s" : ""} left unanswered.
+                    </p>
+                  )}
+                  <p className="mt-1">This action cannot be undone.</p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Go Back</AlertDialogCancel>
+              <AlertDialogAction onClick={onSubmit} disabled={isSubmitting}>
+                {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting…</> : "Submit Test"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
@@ -240,14 +353,13 @@ function SubmittedWaiting({ classroomId, testId, testStatus }: { classroomId: nu
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 w-full max-w-xs">
         <Button variant="outline" asChild>
           <Link href={`/dashboard/classroom/${classroomId}`}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Classroom
           </Link>
         </Button>
         
-        {/* Results button */}
         {isCompleted ? (
           <Button asChild className="gap-2">
             <Link href={`/dashboard/classroom/${classroomId}/test/${testId}/results`}>
@@ -271,7 +383,7 @@ function SubmittedWaiting({ classroomId, testId, testStatus }: { classroomId: nu
 
 export function StudentTakeTestClient({ classroomId, testId }: { classroomId: number; testId: number }) {
   const router = useRouter();
-  const { data, isLoading, refetch } = useGetTest(testId, 10000); // Poll every 10s
+  const { data, isLoading, refetch } = useGetTest(testId, 10000);
   const { data: sessionData, isLoading: isSessionLoading } = useGetMySession(testId);
   const { mutate: submitTest, isPending: isSubmitting } = useSubmitTest();
 
@@ -279,6 +391,7 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
   const [shuffledIds, setShuffledIds] = useState<number[] | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     if (data?.questions && data.questions.length > 0 && !shuffledIds) {
@@ -298,7 +411,7 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
   }, [sessionData]);
 
   const test = data?.test;
-  const questions: any[] = shuffledIds && data?.questions 
+  const questions: any[] = shuffledIds && data?.questions
     ? shuffledIds.map(id => data.questions.find((q: any) => q.id === id)).filter(Boolean)
     : [];
 
@@ -339,7 +452,6 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
 
   const setAnswer = (value: any) => setAnswers((prev) => ({ ...prev, [activeQ]: value }));
 
-  // Guard: handle remote status changes
   useEffect(() => {
     if (!test) return;
 
@@ -351,7 +463,6 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
     }
   }, [test, submitted, isSubmitting, doSubmit, classroomId, testId, router]);
 
-  // Aggressive retry if questions are missing (race condition mitigation)
   useEffect(() => {
     if (test && data?.questions?.length === 0 && !isLoading) {
       const timer = setInterval(() => {
@@ -397,31 +508,60 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
     );
   }
 
-  // ── Submitted: waiting for test to end ──
   if (submitted) {
     return <SubmittedWaiting classroomId={classroomId} testId={testId} testStatus={test?.status} />;
   }
 
-  // Inline dialog below instead of a nested component
+  const paletteProps = {
+    questions,
+    answers,
+    activeQ,
+    onSelect: (idx: number) => { setActiveQ(idx); setPaletteOpen(false); },
+    test,
+    answeredCount,
+    isSubmitting,
+    onSubmit: () => doSubmit(false),
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* ── Main area ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-border bg-card/95 px-6 py-3 backdrop-blur sticky top-0 z-10">
-          <h1 className="font-semibold text-sm truncate max-w-xs">{test.title}</h1>
-          <div className="flex items-center gap-3">
+        <header className="flex items-center justify-between border-b border-border bg-card/95 px-3 sm:px-6 py-2.5 backdrop-blur sticky top-0 z-10 gap-2">
+          <h1 className="font-semibold text-sm truncate min-w-0 flex-1">{test.title}</h1>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Timer */}
             <div className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono font-bold text-sm tabular-nums transition-colors",
+              "flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 font-mono font-bold text-sm tabular-nums transition-colors",
               isUrgent ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-muted text-foreground"
             )}>
               <Clock className={cn("h-4 w-4", isUrgent && "animate-pulse")} />
               {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
             </div>
+
+            {/* Mobile palette button */}
+            <Sheet open={paletteOpen} onOpenChange={setPaletteOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="lg:hidden h-8 w-8">
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 p-0" closeClassName="top-3 right-3">
+                <SheetTitle className="sr-only">Question Palette</SheetTitle>
+                <div className="overflow-y-auto h-full">
+                  <QuestionPalette {...paletteProps} />
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Submit button in header */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" className="gap-2" disabled={isSubmitting}>
-                  <Send className="h-4 w-4" /> Submit
+                <Button size="sm" className="gap-1.5 h-8" disabled={isSubmitting}>
+                  <Send className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline">Submit</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -450,15 +590,24 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
           </div>
         </header>
 
-        {/* Question */}
-        <div className="flex-1 overflow-y-auto p-8">
+        {/* Progress bar */}
+        <div className="h-1 bg-muted shrink-0">
+          <div
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: `${questions.length > 0 ? ((activeQ + 1) / questions.length) * 100 : 0}%` }}
+          />
+        </div>
+
+        {/* Question area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
           {q ? (
-            <div className="max-w-3xl mx-auto space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="max-w-3xl mx-auto space-y-5">
+              {/* Question meta */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-sm font-medium text-muted-foreground">
                   Question <span className="text-foreground font-semibold">{activeQ + 1}</span> of {questions.length}
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {isAnswered(answers[activeQ]) ? (
                     <Badge variant="secondary" className="text-green-600 bg-green-500/10 border-green-500/20 text-xs">Answered</Badge>
                   ) : (
@@ -468,20 +617,24 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
                 </div>
               </div>
 
-              <p className="text-lg font-medium leading-relaxed">{q.text}</p>
+              {/* Question text */}
+              <p className="text-base sm:text-lg font-medium leading-relaxed">{q.text}</p>
 
+              {/* Answer UI */}
               {q.type === "single_choice" && <SingleChoiceAnswer q={q} answer={answers[activeQ]} onChange={setAnswer} />}
               {q.type === "multi_choice" && <MultiChoiceAnswer q={q} answer={answers[activeQ]} onChange={setAnswer} />}
               {q.type === "true_false" && <TrueFalseAnswer answer={answers[activeQ]} onChange={setAnswer} />}
               {q.type === "text" && <TextAnswer answer={answers[activeQ]} onChange={setAnswer} />}
               {q.type === "sequence" && <SequenceAnswer q={q} answer={answers[activeQ]} onChange={setAnswer} />}
 
+              {/* Navigation */}
               <div className="flex items-center justify-between pt-4 border-t border-border">
-                <Button variant="outline" size="sm" className="gap-2" disabled={activeQ === 0} onClick={() => setActiveQ((i) => i - 1)}>
-                  <ChevronLeft className="h-4 w-4" /> Previous
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={activeQ === 0} onClick={() => setActiveQ((i) => i - 1)}>
+                  <ChevronLeft className="h-4 w-4" /> <span className="hidden xs:inline">Previous</span>
                 </Button>
-                <Button size="sm" className="gap-2" disabled={activeQ === questions.length - 1} onClick={() => setActiveQ((i) => i + 1)}>
-                  Next <ChevronRight className="h-4 w-4" />
+                <span className="text-xs text-muted-foreground">{activeQ + 1} / {questions.length}</span>
+                <Button size="sm" className="gap-1.5" disabled={activeQ === questions.length - 1} onClick={() => setActiveQ((i) => i + 1)}>
+                  <span className="hidden xs:inline">Next</span> <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -494,90 +647,9 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
         </div>
       </div>
 
-      {/* ── Sidebar ── */}
-      <aside className="flex w-64 shrink-0 flex-col border-l border-border bg-card overflow-y-auto">
-        <div className="p-4 border-b border-border">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Question Palette</p>
-          <div className="grid grid-cols-5 gap-1.5">
-            {questions.map((_: any, idx: number) => {
-              const answered = isAnswered(answers[idx]);
-              const active = activeQ === idx;
-              return (
-                <button key={idx} onClick={() => setActiveQ(idx)}
-                  className={cn("flex h-8 w-full items-center justify-center rounded text-xs font-medium transition-all border",
-                    active ? "bg-primary text-primary-foreground border-primary"
-                    : answered ? "bg-green-500/15 text-green-700 border-green-500/30 hover:bg-green-500/25"
-                    : "bg-card text-foreground border-border hover:bg-muted")}>
-                  {idx + 1}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-3 mt-3 flex-wrap">
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <span className="h-2.5 w-2.5 rounded-sm bg-green-500/20 border border-green-500/30 inline-block" /> Answered
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <span className="h-2.5 w-2.5 rounded-sm bg-card border border-border inline-block" /> Not answered
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test Info</p>
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Answered</span>
-              <span className="font-semibold text-green-600">{answeredCount} / {questions.length}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Total Marks</span>
-              <span className="font-medium">{test.totalMarks ?? "—"}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Neg. Marking</span>
-              <span className={cn("font-medium", test.isNegativeMarking && "text-orange-500")}>{test.isNegativeMarking ? "Yes (-1)" : "No"}</span>
-            </div>
-          </div>
-          {test.isNegativeMarking && (
-            <div className="flex items-start gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/5 p-2 mt-2">
-              <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-orange-600 leading-relaxed">Wrong answers deduct 1 mark each.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-auto p-4 border-t border-border">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="w-full gap-2" size="sm" disabled={isSubmitting}>
-                <Send className="h-4 w-4" /> Submit Test
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Submit your test?</AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div>
-                    You have answered <strong>{answeredCount} of {questions.length}</strong> questions.
-                    {answeredCount < questions.length && (
-                      <p className="mt-1 text-orange-500 font-medium">
-                        ⚠ {questions.length - answeredCount} question{questions.length - answeredCount > 1 ? "s" : ""} left unanswered.
-                      </p>
-                    )}
-                    <p className="mt-1">This action cannot be undone.</p>
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Go Back</AlertDialogCancel>
-                <AlertDialogAction onClick={() => doSubmit(false)} disabled={isSubmitting}>
-                  {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting…</> : "Submit Test"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+      {/* ── Desktop Sidebar (hidden on mobile) ── */}
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-l border-border bg-card overflow-y-auto">
+        <QuestionPalette {...paletteProps} />
       </aside>
     </div>
   );

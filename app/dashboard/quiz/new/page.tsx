@@ -735,9 +735,9 @@ function NewQuizContent() {
                         {questions.length > 1 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteQuestion(idx); }}
-                            className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-destructive group-hover:flex"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive md:h-5 md:w-5 md:rounded md:bg-transparent md:text-muted-foreground md:hover:text-destructive md:hidden md:group-hover:flex"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5 md:h-3 md:w-3" />
                           </button>
                         )}
                       </div>

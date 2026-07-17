@@ -309,7 +309,7 @@ export default function StudentQuizPage() {
   const renderQuestionUI = () => {
     if (!currentQuestion) return null;
 
-    const disabled = submittedStatus !== null || isTimeUp;
+    const disabled = submittedStatus !== null || !!isTimeUp || isShowingResults;
 
     if (currentQuestion.type === "single_choice") {
       const options = currentQuestion.config?.options ?? [];
@@ -317,7 +317,7 @@ export default function StudentQuizPage() {
       const sumVotes = Object.values(voteCounts).reduce((a, b) => a + b, 0) || 0;
 
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-6 md:mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isSelected = selectedAnswer === opt.id;
             const isCorrectAnswer = isShowingResults && currentQuestion.correctAnswer === opt.id;
@@ -331,10 +331,11 @@ export default function StudentQuizPage() {
                 key={opt.id}
                 disabled={disabled}
                 onClick={() => {
+                  if (disabled) return;
                   setSelectedAnswer(opt.id);
                 }}
                 className={cn(
-                  "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
+                  "relative overflow-hidden flex items-center justify-between p-3 sm:p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
                   isCorrectAnswer
                     ? "border-green-500 bg-green-500/10"
                     : isWrongSelection
@@ -350,17 +351,17 @@ export default function StudentQuizPage() {
                   className="absolute left-0 top-0 bottom-0 bg-primary/10 transition-all duration-500 ease-in-out" 
                   style={{ width: `${percentage}%` }}
                 />
-                <div className="flex items-center gap-4 relative z-10">
+                <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
                   <div className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                    "flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-sm sm:text-base font-bold",
                     isCorrectAnswer ? "bg-green-500 text-white" : isWrongSelection ? "bg-destructive text-white" : isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   )}>
                     {labels[i]}
                   </div>
-                  <span className={cn("text-xl font-medium", (isCorrectAnswer || isWrongSelection) ? "text-foreground" : "text-foreground")}>{opt.text}</span>
+                  <span className={cn("text-sm sm:text-base font-medium leading-snug", (isCorrectAnswer || isWrongSelection) ? "text-foreground" : "text-foreground")}>{opt.text}</span>
                 </div>
                 {disabled && (
-                  <span className="font-bold text-lg text-muted-foreground relative z-10">{percentage}%</span>
+                  <span className="font-bold text-sm sm:text-base text-muted-foreground relative z-10 shrink-0 ml-2">{percentage}%</span>
                 )}
               </button>
             );
@@ -375,7 +376,7 @@ export default function StudentQuizPage() {
       const sumVotes = Object.values(voteCounts).reduce((a, b) => a + b, 0) || 0;
 
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-6 md:mt-8 w-full max-w-4xl mx-auto">
           {options.map((opt: any, i: number) => {
             const isSelected = Array.isArray(selectedAnswer) && selectedAnswer.includes(opt.id);
             const isCorrectAnswer = isShowingResults && Array.isArray(currentQuestion.correctAnswer) && currentQuestion.correctAnswer.includes(opt.id);
@@ -389,6 +390,7 @@ export default function StudentQuizPage() {
                 key={opt.id}
                 disabled={disabled}
                 onClick={() => {
+                  if (disabled) return;
                   const current = Array.isArray(selectedAnswer) ? [...selectedAnswer] : [];
                   if (isSelected) {
                     setSelectedAnswer(current.filter(id => id !== opt.id));
@@ -397,7 +399,7 @@ export default function StudentQuizPage() {
                   }
                 }}
                 className={cn(
-                  "relative overflow-hidden flex items-center justify-between p-6 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
+                  "relative overflow-hidden flex items-center justify-between p-3 sm:p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm",
                   isCorrectAnswer
                     ? "border-green-500 bg-green-500/10"
                     : isWrongSelection
@@ -413,17 +415,17 @@ export default function StudentQuizPage() {
                   className="absolute left-0 top-0 bottom-0 bg-primary/10 transition-all duration-500 ease-in-out" 
                   style={{ width: `${percentage}%` }}
                 />
-                <div className="flex items-center gap-4 relative z-10">
+                <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
                   <div className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                    "flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-sm sm:text-base font-bold",
                     isCorrectAnswer ? "bg-green-500 text-white" : isWrongSelection ? "bg-destructive text-white" : isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   )}>
                     {labels[i]}
                   </div>
-                  <span className={cn("text-xl font-medium", (isCorrectAnswer || isWrongSelection) ? "text-foreground" : "text-foreground")}>{opt.text}</span>
+                  <span className={cn("text-sm sm:text-base font-medium leading-snug", (isCorrectAnswer || isWrongSelection) ? "text-foreground" : "text-foreground")}>{opt.text}</span>
                 </div>
                 {disabled && (
-                  <span className="font-bold text-lg text-muted-foreground relative z-10">{percentage}%</span>
+                  <span className="font-bold text-sm sm:text-base text-muted-foreground relative z-10 shrink-0 ml-2">{percentage}%</span>
                 )}
               </button>
             );
@@ -445,12 +447,12 @@ export default function StudentQuizPage() {
       const isFalseWrongSelection = isShowingResults && selectedAnswer === false && !isFalseCorrect;
 
       return (
-        <div className="flex flex-col sm:flex-row gap-6 mt-8 w-full max-w-2xl mx-auto">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mt-6 md:mt-8 w-full max-w-2xl mx-auto">
           <button
             disabled={disabled}
-            onClick={() => setSelectedAnswer(true)}
+            onClick={() => { if (!disabled) setSelectedAnswer(true); }}
             className={cn(
-              "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
+              "flex-1 flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
               isTrueCorrect ? "border-green-500 bg-green-500/10 text-green-700" : isTrueWrongSelection ? "border-destructive bg-destructive/10 text-destructive" : selectedAnswer === true ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
               disabled && selectedAnswer !== true && !isTrueCorrect && "opacity-50 cursor-not-allowed"
             )}
@@ -459,14 +461,14 @@ export default function StudentQuizPage() {
               className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
               style={{ height: `${truePct}%` }}
             />
-            <span className={cn("text-3xl font-bold z-10", (isTrueCorrect || isTrueWrongSelection) ? "" : selectedAnswer === true ? "text-primary" : "text-foreground")}>True</span>
-            {disabled && <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>}
+            <span className={cn("text-xl sm:text-2xl font-bold z-10", (isTrueCorrect || isTrueWrongSelection) ? "" : selectedAnswer === true ? "text-primary" : "text-foreground")}>True</span>
+            {disabled && <span className="font-bold text-base sm:text-lg text-muted-foreground mt-2 z-10">{truePct}%</span>}
           </button>
           <button
             disabled={disabled}
-            onClick={() => setSelectedAnswer(false)}
+            onClick={() => { if (!disabled) setSelectedAnswer(false); }}
             className={cn(
-              "flex-1 flex flex-col items-center justify-center p-8 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
+              "flex-1 flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border-4 shadow-sm relative overflow-hidden transition-all active:scale-95",
               isFalseCorrect ? "border-green-500 bg-green-500/10 text-green-700" : isFalseWrongSelection ? "border-destructive bg-destructive/10 text-destructive" : selectedAnswer === false ? "border-destructive bg-destructive/5" : "border-border bg-card hover:border-destructive/40",
               disabled && selectedAnswer !== false && !isFalseCorrect && "opacity-50 cursor-not-allowed"
             )}
@@ -475,8 +477,8 @@ export default function StudentQuizPage() {
               className="absolute left-0 bottom-0 right-0 bg-primary/10 transition-all duration-500 ease-in-out" 
               style={{ height: `${falsePct}%` }}
             />
-            <span className={cn("text-3xl font-bold z-10", (isFalseCorrect || isFalseWrongSelection) ? "" : selectedAnswer === false ? "text-destructive" : "text-foreground")}>False</span>
-            {disabled && <span className="font-bold text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>}
+            <span className={cn("text-xl sm:text-2xl font-bold z-10", (isFalseCorrect || isFalseWrongSelection) ? "" : selectedAnswer === false ? "text-destructive" : "text-foreground")}>False</span>
+            {disabled && <span className="font-bold text-base sm:text-lg text-muted-foreground mt-2 z-10">{falsePct}%</span>}
           </button>
         </div>
       );
@@ -486,8 +488,8 @@ export default function StudentQuizPage() {
       const items = currentQuestion.config?.items ?? [];
       
       return (
-        <div className="flex flex-col gap-3 mt-8 w-full max-w-2xl mx-auto">
-          <p className="text-sm text-muted-foreground mb-2">Tap the items in the correct order to select them (1, 2, 3...):</p>
+        <div className="flex flex-col gap-2 sm:gap-3 mt-6 md:mt-8 w-full max-w-2xl mx-auto">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-1">Tap the items in the correct order to select them (1, 2, 3...):</p>
           {items.map((item: any) => {
             const indexInOrder = sequenceOrder.indexOf(item.id);
             const isSelected = indexInOrder !== -1;
@@ -504,7 +506,7 @@ export default function StudentQuizPage() {
                 disabled={disabled}
                 onClick={() => handleSequenceClick(item.id)}
                 className={cn(
-                  "flex items-center gap-4 p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm relative",
+                  "flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border-4 text-left transition-all active:scale-95 shadow-sm relative",
                   isCorrectPosition
                     ? "border-green-500 bg-green-500/10"
                     : isWrongPosition
@@ -517,17 +519,17 @@ export default function StudentQuizPage() {
                 )}
               >
                 <div className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold z-10",
+                  "flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-bold z-10",
                   isCorrectPosition ? "bg-green-500 text-white" : isWrongPosition ? "bg-destructive text-white" : isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}>
                   {isSelected ? indexInOrder + 1 : ""}
                 </div>
-                <span className="text-lg font-medium text-foreground z-10">{item.text}</span>
+                <span className="text-sm sm:text-base md:text-lg font-medium text-foreground z-10 flex-1 text-left">{item.text}</span>
                 
                 {isShowingResults && (
-                  <div className="absolute right-4 text-sm font-bold text-muted-foreground flex items-center gap-2">
-                    <span>Correct Position:</span>
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500 text-white">
+                  <div className="shrink-0 text-xs sm:text-sm font-bold text-muted-foreground flex items-center gap-1 sm:gap-2">
+                    <span className="hidden sm:inline">Correct:</span>
+                    <div className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-xs">
                       {correctIndex + 1}
                     </div>
                   </div>
@@ -544,14 +546,14 @@ export default function StudentQuizPage() {
       const isWrongText = isShowingResults && submittedStatus === "incorrect";
 
       return (
-        <div className="mt-8 text-center flex flex-col items-center gap-6 w-full max-w-md mx-auto">
+        <div className="mt-6 md:mt-8 text-center flex flex-col items-center gap-4 sm:gap-6 w-full max-w-md mx-auto px-2">
           <Input 
             value={selectedAnswer || ""}
             onChange={(e) => setSelectedAnswer(e.target.value)}
             disabled={disabled}
             placeholder="Type your answer here..."
             className={cn(
-              "h-16 text-center text-xl shadow-sm border-2 focus-visible:ring-primary/20",
+              "h-12 sm:h-16 text-center text-base sm:text-xl shadow-sm border-2 focus-visible:ring-primary/20",
               isCorrectText ? "border-green-500 bg-green-500/10 text-green-700 font-bold" : isWrongText ? "border-destructive bg-destructive/10 text-destructive font-bold" : ""
             )}
             autoFocus
@@ -573,7 +575,7 @@ export default function StudentQuizPage() {
       {/* ── TOP BAR ── */}
       <header className="flex min-h-16 shrink-0 flex-col sm:flex-row items-center justify-between border-b border-border bg-card px-4 md:px-6 py-2 sm:py-0 z-10 gap-2 sm:gap-0">
         <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-          <div className="flex items-center gap-2 max-w-[80%]">
+          <div className="flex flex-col items-start justify-center max-w-[80%] sm:max-w-none min-w-0">
             <h1 className="text-base md:text-lg font-bold text-foreground leading-tight line-clamp-1">{quiz.title}</h1>
             <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase shrink-0">
               {isWaiting || isDraft ? "Waiting" : quiz.status.replace("_", " ")}
@@ -621,7 +623,7 @@ export default function StudentQuizPage() {
       </header>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex flex-1 flex-col relative">
+      <main className="flex flex-1 flex-col relative min-h-0">
         
         {/* WAITING SCREEN */}
         {(isDraft || isWaiting) && !isInProgress && (
@@ -638,13 +640,13 @@ export default function StudentQuizPage() {
 
         {/* ACTIVE QUESTION PANEL */}
         {(isInProgress || isShowingResults) && currentQuestion && (
-          <div className="flex-1 flex flex-col p-6 md:p-12 overflow-y-auto">
+          <div className="flex-1 flex flex-col p-3 sm:p-6 md:p-12 overflow-y-auto">
             <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col">
               
-              <div className="flex items-center justify-end mb-6 md:mb-8">
+              <div className="flex items-center justify-end mb-4 md:mb-8">
                 {/* TIMER BUBBLE */}
                 <div className={cn(
-                  "flex items-center gap-2 px-5 py-2 rounded-full border-2 font-mono text-2xl font-bold shadow-sm transition-colors",
+                  "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 font-mono text-lg sm:text-2xl font-bold shadow-sm transition-colors",
                   isShowingResults 
                     ? "border-muted bg-muted text-muted-foreground" 
                     : timeRemaining <= 5 
@@ -653,15 +655,15 @@ export default function StudentQuizPage() {
                     ? "border-orange-500/50 bg-orange-500/10 text-orange-600"
                     : "border-primary/30 bg-primary/5 text-primary"
                 )}>
-                  <Clock className="h-6 w-6" />
+                  <Clock className="h-4 w-4 sm:h-6 sm:w-6" />
                   {isShowingResults ? "Time's Up!" : `${timeRemaining}s`}
                 </div>
               </div>
-              <div className="flex-1 flex flex-col items-center justify-start text-center pb-24">
+              <div className="flex-1 flex flex-col items-center justify-start text-center pb-28 sm:pb-24 min-h-0">
                 
                 {/* QUESTION TYPE BADGE */}
-                <div className="mb-4">
-                  <Badge variant="secondary" className="text-sm px-3 py-1 bg-muted">
+                <div className="mb-3 md:mb-4">
+                  <Badge variant="secondary" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 bg-muted">
                     {currentQuestion.type === "single_choice" && "Single Correct Option"}
                     {currentQuestion.type === "multi_choice" && "Multiple Correct Options"}
                     {currentQuestion.type === "true_false" && "True or False"}
@@ -670,7 +672,7 @@ export default function StudentQuizPage() {
                   </Badge>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight max-w-4xl px-2">
+                <h3 className="text-xl sm:text-2xl md:text-4xl font-bold text-foreground leading-tight max-w-4xl px-2">
                   {currentQuestion.text}
                 </h3>
                 
