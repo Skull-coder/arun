@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useGetTest } from "@/hooks/tanstackQuery/test/use-get-test";
 import { useGetMySession } from "@/hooks/tanstackQuery/test/use-get-my-session";
 import { useSubmitTest } from "@/hooks/tanstackQuery/test/use-submit-test";
+import { useAntiCheat } from "@/hooks/use-anti-cheat";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -415,7 +416,7 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
     ? shuffledIds.map(id => data.questions.find((q: any) => q.id === id)).filter(Boolean)
     : [];
 
-  const doSubmit = useCallback((isAutoSubmit = false) => {
+  const doSubmit = useCallback((isAutoSubmit = false, customMessage?: string) => {
     if (submitted) return;
     const answerPayload = questions.map((q: any, idx: number) => ({
       questionId: q.id,
@@ -427,7 +428,11 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
       {
         onSuccess: () => {
           setSubmitted(true);
-          if (isAutoSubmit) toast.info("Time's up! Your test was automatically submitted.");
+          if (customMessage) {
+            toast.error(customMessage);
+          } else if (isAutoSubmit) {
+            toast.info("Time's up! Your test was automatically submitted.");
+          }
         },
         onError: (err: Error) => {
           if (err.message.includes("already submitted")) {
@@ -441,6 +446,12 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
   }, [questions, answers, testId, submitTest, submitted]);
 
   const handleExpire = useCallback(() => doSubmit(true), [doSubmit]);
+
+  const { strikes, showWarning, setShowWarning } = useAntiCheat(
+    3,
+    useCallback(() => doSubmit(true, "Anti-cheat limit exceeded. Your test was automatically submitted."), [doSubmit]),
+    !submitted && !!test
+  );
 
   const { minutes, seconds, isUrgent } = useTestTimer(
     test?.endAt ?? null,
@@ -510,6 +521,37 @@ export function StudentTakeTestClient({ classroomId, testId }: { classroomId: nu
 
   if (submitted) {
     return <SubmittedWaiting classroomId={classroomId} testId={testId} testStatus={test?.status} />;
+  }
+
+  if (showWarning) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-destructive/10 text-destructive p-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-destructive/5 animate-pulse" />
+        <div className="relative z-10 flex flex-col items-center max-w-lg text-center bg-background p-6 md:p-8 rounded-2xl shadow-2xl border-2 border-destructive">
+          <AlertTriangle className="h-16 w-16 text-destructive mb-6" />
+          <h2 className="text-2xl md:text-3xl font-black mb-2 uppercase tracking-tight">Warning</h2>
+          <p className="text-base md:text-lg font-medium text-foreground mb-4">
+            You navigated away from the test window. This is considered suspicious behavior.
+          </p>
+          <div className="bg-destructive/10 p-4 rounded-xl w-full mb-6">
+            <p className="text-destructive font-bold text-lg">
+              Violation {strikes} of 3
+            </p>
+            <p className="text-xs md:text-sm text-destructive/80 mt-1">
+              On your 3rd violation, your test will be automatically submitted.
+            </p>
+          </div>
+          <Button 
+            size="lg" 
+            variant="destructive" 
+            className="w-full text-base md:text-lg h-12 md:h-14 font-bold"
+            onClick={() => setShowWarning(false)}
+          >
+            I Understand. Return to Test
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const paletteProps = {

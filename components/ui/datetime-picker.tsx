@@ -88,22 +88,24 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date & t
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 border-border/50 shadow-lg scale-90 sm:scale-100 origin-top-left" align="start">
         {/* Calendar */}
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={handleDateSelect}
-          initialFocus
-          className="p-3 bg-card"
-        />
+        <div className="w-full flex justify-center bg-card rounded-t-md pt-3 pb-1">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleDateSelect}
+            initialFocus
+            className="p-0"
+          />
+        </div>
 
         {/* Time Picker */}
         <div className="p-3 border-t border-border bg-muted/10">
           <Label className="text-xs flex items-center gap-2 text-muted-foreground font-medium mb-3">
             <Clock className="h-3.5 w-3.5 text-primary" /> Select Time
           </Label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-1.5 bg-background p-1.5 rounded-lg border border-border/50 shadow-sm">
             <Select value={hour} onValueChange={(v) => { setHour(v); updateValue(date, v, minute, ampm); }}>
-              <SelectTrigger className="w-[70px] h-9">
+              <SelectTrigger className="w-[60px] h-8 text-xs border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
                 <SelectValue placeholder="HH" />
               </SelectTrigger>
               <SelectContent>
@@ -112,15 +114,16 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date & t
             </Select>
             <span className="text-muted-foreground font-bold">:</span>
             <Select value={minute} onValueChange={(v) => { setMinute(v); updateValue(date, hour, v, ampm); }}>
-              <SelectTrigger className="w-[70px] h-9">
+              <SelectTrigger className="w-[60px] h-8 text-xs border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
                 <SelectValue placeholder="MM" />
               </SelectTrigger>
               <SelectContent>
                 {minutesList.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
             </Select>
+            <div className="w-px h-6 bg-border mx-1" />
             <Select value={ampm} onValueChange={(v) => { setAmpm(v); updateValue(date, hour, minute, v); }}>
-              <SelectTrigger className="w-[70px] h-9">
+              <SelectTrigger className="w-[65px] h-8 text-xs border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
                 <SelectValue placeholder="AM/PM" />
               </SelectTrigger>
               <SelectContent>
