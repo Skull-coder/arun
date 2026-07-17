@@ -52,10 +52,10 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 100);
-  const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
+  const page = Math.max(Number(searchParams.get("page")) || 1, 1);
 
-  const result = await getQuizzes(userId, limit, offset);
+  const result = await getQuizzes(userId, page, limit);
 
-  return NextResponse.json({ quizzes: result.quizzes });
+  return NextResponse.json({ quizzes: result.quizzes, nextCursor: result.nextCursor });
 }
 

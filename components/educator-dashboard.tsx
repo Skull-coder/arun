@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -102,7 +103,17 @@ export default function EducatorDashboard({ user }: Props) {
     { label: "Reports", icon: BarChart2, soon: true },
   ];
 
-  const { data: quizzes, isLoading } = useGetQuizzes();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetQuizzes();
+  const quizzes = data?.pages?.flatMap(p => p.quizzes) || [];
+  
+  const { ref: observerRef, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
+
   const { mutate: deleteQuiz, isPending: isDeleting } = useDeleteQuiz();
 
   const queryClient = useQueryClient();
@@ -373,6 +384,12 @@ export default function EducatorDashboard({ user }: Props) {
                   />
                 );
               })}
+            </div>
+          )}
+          
+          {hasNextPage && (
+            <div ref={observerRef} className="py-8 flex justify-center">
+              <span className="text-sm text-muted-foreground animate-pulse">Loading more quizzes...</span>
             </div>
           )}
         </div>

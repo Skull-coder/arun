@@ -11,10 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Send, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { useInView } from "react-intersection-observer";
 import { UpdateMessage } from "./update-message";
 
 export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
-  const { data, isLoading } = useGetUpdates(classroomId, true);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetUpdates(classroomId, true);
   const pushUpdate = usePushUpdate();
   const deleteUpdate = useDeleteUpdate();
   const editUpdate = useEditUpdate();
@@ -25,12 +26,22 @@ export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on load if we have updates
+  const { ref: observerRef, inView } = useInView();
+
   useEffect(() => {
-    if (data?.updates) {
-      endOfMessagesRef.current?.scrollIntoView({ behavior: "instant" });
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [data?.updates?.length]);
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
+
+  // Auto-scroll to bottom on initial load only
+  const initialLoadRef = useRef(true);
+  useEffect(() => {
+    if (data?.pages?.[0]?.updates && initialLoadRef.current) {
+      endOfMessagesRef.current?.scrollIntoView({ behavior: "instant" });
+      initialLoadRef.current = false;
+    }
+  }, [data?.pages?.[0]?.updates?.length]);
 
   if (isLoading) {
     return (
@@ -42,7 +53,7 @@ export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
     );
   }
 
-  const updates = data?.updates || [];
+  const updates = data?.pages?.flatMap(p => p.updates) || [];
   // Sort oldest first for a chat-like messaging flow
   const sortedUpdates = [...updates].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -101,7 +112,13 @@ export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
             </div>
           </div>
         ) : (
-          sortedUpdates.map((u) => (
+          <>
+            {hasNextPage && (
+              <div ref={observerRef} className="py-4 flex justify-center">
+                {isFetchingNextPage ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : <div className="h-6" />}
+              </div>
+            )}
+            {sortedUpdates.map((u) => (
             <UpdateMessage
               key={u.id}
               update={u}
@@ -129,7 +146,8 @@ export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
                   : undefined
               }
             />
-          ))
+          ))}
+          </>
         )}
         <div ref={endOfMessagesRef} />
       </div>
@@ -138,7 +156,7 @@ export function EducatorUpdatesTab({ classroomId }: { classroomId: number }) {
       <div className="sticky bottom-0 -mx-4 px-4 pb-2 pt-6 bg-gradient-to-t from-background via-background to-transparent mt-auto">
         <div className="bg-card border border-border rounded-2xl shadow-lg focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all p-2 relative overflow-hidden">
           <Textarea 
-            placeholder="Type an announcement... (Press Enter to send, Shift+Enter for new line)"
+            placeholder="Type an announcement..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}

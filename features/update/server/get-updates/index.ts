@@ -8,7 +8,8 @@ import {
   classroomsTable 
 } from "@/features/database/schema";
 
-export async function getUpdates(userId: string, classroomId: number, markAsRead: boolean = false) {
+export async function getUpdates(userId: string, classroomId: number, markAsRead: boolean = false, page: number = 1, limit: number = 20) {
+  const offset = (page - 1) * limit;
   try {
     // 1. Verify user exists
     const [user] = await db
@@ -52,7 +53,12 @@ export async function getUpdates(userId: string, classroomId: number, markAsRead
       .select()
       .from(classroomUpdatesTable)
       .where(eq(classroomUpdatesTable.classroomId, classroomId))
-      .orderBy(desc(classroomUpdatesTable.createdAt)); // Newest first
+      .orderBy(desc(classroomUpdatesTable.createdAt))
+      .limit(limit + 1)
+      .offset(offset);
+      
+    const hasNextPage = updates.length > limit;
+    const paginatedUpdates = hasNextPage ? updates.slice(0, limit) : updates;
 
     // 4. Handle WhatsApp-style Read Status (For everyone)
     let lastReadAt = null;
@@ -90,7 +96,7 @@ export async function getUpdates(userId: string, classroomId: number, markAsRead
       }
     }
 
-    return { updates, lastReadAt, status: 200 };
+    return { updates: paginatedUpdates, nextCursor: hasNextPage ? page + 1 : null, lastReadAt, status: 200 };
   } catch (error) {
     console.error("Error fetching updates:", error);
     return { error: "Failed to fetch updates", status: 500 };

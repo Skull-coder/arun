@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { useGetAssignments } from "@/hooks/tanstackQuery/assignment/use-get-assignments";
 import { useCreateAssignment } from "@/hooks/tanstackQuery/assignment/use-create-assignment";
 import { useUpdateAssignment } from "@/hooks/tanstackQuery/assignment/use-update-assignment";
@@ -52,7 +53,7 @@ type Assignment = {
 const emptyForm = { title: "", description: "", dueDate: "" };
 
 export function EducatorAssignmentsTab({ classroomId }: { classroomId: number }) {
-  const { data, isLoading } = useGetAssignments(classroomId);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetAssignments(classroomId);
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
@@ -62,7 +63,15 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const assignments: Assignment[] = data?.assignments ?? [];
+  const assignments: Assignment[] = data?.pages?.flatMap(p => p.assignments) || [];
+  
+  const { ref: observerRef, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -172,7 +181,8 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
 
       {/* Assignment Cards — vertical list */}
       {!isLoading && assignments.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <>
+          <div className="flex flex-col gap-4">
           {assignments.map((a) => (
             <div
               key={a.id}
@@ -234,8 +244,15 @@ export function EducatorAssignmentsTab({ classroomId }: { classroomId: number })
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          
+          {hasNextPage && (
+            <div ref={observerRef} className="py-8 flex justify-center">
+              <span className="text-sm text-muted-foreground animate-pulse">Loading more assignments...</span>
+            </div>
+          )}
+        </>
       )}
 
       {/* Create / Edit Dialog */}

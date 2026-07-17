@@ -2,7 +2,7 @@ import { eq, desc, asc, count, inArray, sql, and, gt, lt, or } from "drizzle-orm
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable, quizSessionsTable, studentAnswersTable } from "@/features/database/schema";
 
-export async function getQuizzes(userId: string, limit: number, offset: number) {
+export async function getQuizzes(userId: string, page: number = 1, limit: number = 20) {
   // First, fetch the user's role
   const user = await db
     .select({ role: usersTable.role })
@@ -16,13 +16,14 @@ export async function getQuizzes(userId: string, limit: number, offset: number) 
   }
 
   if (user.role === "educator") {
-    return getEducatorQuizzes(userId, limit, offset);
+    return getEducatorQuizzes(userId, page, limit);
   } else {
-    return getStudentQuizzes(userId, limit, offset);
+    return getStudentQuizzes(userId, page, limit);
   }
 }
 
-async function getEducatorQuizzes(userId: string, limit: number, offset: number) {
+async function getEducatorQuizzes(userId: string, page: number, limit: number) {
+  const offset = (page - 1) * limit;
   const quizzes = await db
     .select({
       id: quizzesTable.id,
@@ -40,13 +41,17 @@ async function getEducatorQuizzes(userId: string, limit: number, offset: number)
     .from(quizzesTable)
     .where(eq(quizzesTable.creatorId, userId))
     .orderBy(desc(quizzesTable.updatedAt))
-    .limit(limit)
+    .limit(limit + 1)
     .offset(offset);
 
-  return { quizzes };
+  const hasNextPage = quizzes.length > limit;
+  const paginatedQuizzes = hasNextPage ? quizzes.slice(0, limit) : quizzes;
+
+  return { quizzes: paginatedQuizzes, nextCursor: hasNextPage ? page + 1 : null };
 }
 
-async function getStudentQuizzes(userId: string, limit: number, offset: number) {
+async function getStudentQuizzes(userId: string, page: number, limit: number) {
+  const offset = (page - 1) * limit;
   const sessions = await db
     .select({
       sessionId: quizSessionsTable.id,
@@ -65,10 +70,13 @@ async function getStudentQuizzes(userId: string, limit: number, offset: number) 
     .innerJoin(quizzesTable, eq(quizSessionsTable.quizId, quizzesTable.id))
     .where(eq(quizSessionsTable.studentId, userId))
     .orderBy(desc(quizSessionsTable.startedAt))
-    .limit(limit)
+    .limit(limit + 1)
     .offset(offset);
 
-  return { quizzes: sessions };
+  const hasNextPage = sessions.length > limit;
+  const paginatedSessions = hasNextPage ? sessions.slice(0, limit) : sessions;
+
+  return { quizzes: paginatedSessions, nextCursor: hasNextPage ? page + 1 : null };
 }
 
 export async function getQuiz(quizId: number, userId: string) {

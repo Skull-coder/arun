@@ -86,7 +86,7 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date & t
           {value ? format(value, "MMM d, yyyy 'at' h:mm a") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border-border/50 shadow-lg" align="start">
+      <PopoverContent className="w-auto p-0 border-border/50 shadow-lg scale-90 sm:scale-100 origin-top-left" align="start">
         {/* Calendar */}
         <Calendar
           mode="single"

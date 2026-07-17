@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useInView } from "react-intersection-observer";
 import { toast } from "sonner";
 import { AppSidebar, MobileAppSidebar, type NavItem } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -180,9 +181,18 @@ export default function StudentDashboard({ user }: Props) {
     { label: "Performance", icon: BarChart2, soon: true },
   ];
 
-  const { data: sessions, isLoading } = useGetQuizzes();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetQuizzes();
+  const sessions = data?.pages?.flatMap(p => p.quizzes) || [];
   const [search, setSearch] = useState("");
   const [joinOpen, setJoinOpen] = useState(false);
+
+  const { ref: observerRef, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   const filtered = useMemo(() => {
     if (!sessions) return [];
@@ -380,6 +390,12 @@ export default function StudentDashboard({ user }: Props) {
                   }
                 />
               ))}
+            </div>
+          )}
+          
+          {hasNextPage && (
+            <div ref={observerRef} className="py-8 flex justify-center">
+              <span className="text-sm text-muted-foreground animate-pulse">Loading more quizzes...</span>
             </div>
           )}
         </div>

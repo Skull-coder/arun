@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useInView } from "react-intersection-observer"
 
 import { useGetTests } from '@/hooks/tanstackQuery/test/use-get-tests'
 import { useDeleteTest } from '@/hooks/tanstackQuery/test/use-delete-test'
@@ -85,8 +86,16 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
   const router = useRouter()
   const [statusFilter, setStatusFilter] = useState("all")
 
-  const { data, isLoading } = useGetTests(classroomId)
-  const tests = data?.tests
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetTests(classroomId)
+  const tests = data?.pages?.flatMap(p => p.tests) || []
+
+  const { ref: observerRef, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   const filteredTests = tests?.filter((test: any) => {
     if (statusFilter === "all") return true;
@@ -328,6 +337,12 @@ export function EducatorTestsTab({ classroomId }: EducatorTestsTabProps) {
                   />
                 );
               })}
+            </div>
+          )}
+
+          {hasNextPage && (
+            <div ref={observerRef} className="py-8 flex justify-center">
+              <span className="text-sm text-muted-foreground animate-pulse">Loading more tests...</span>
             </div>
           )}
         </>

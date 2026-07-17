@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { useGetAssignments } from "@/hooks/tanstackQuery/assignment/use-get-assignments";
 import { useGetSubmissions } from "@/hooks/tanstackQuery/assignment/use-get-submissions";
 import { useSubmitAssignment } from "@/hooks/tanstackQuery/assignment/use-submit-assignment";
@@ -429,10 +430,18 @@ function AssignmentCard({ assignment, classroomId, filter }: { assignment: Assig
 type FilterType = "all" | "pending" | "returned" | "accepted";
 
 export function StudentAssignmentsTab({ classroomId }: { classroomId: number }) {
-  const { data, isLoading } = useGetAssignments(classroomId);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetAssignments(classroomId);
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const assignments: Assignment[] = data?.assignments ?? [];
+  const assignments: Assignment[] = data?.pages?.flatMap(p => p.assignments) || [];
+  
+  const { ref: observerRef, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   // Sort by dueDate ascending (most urgent first), nulls last
   const sorted = [...assignments].sort((a, b) => {
@@ -496,11 +505,19 @@ export function StudentAssignmentsTab({ classroomId }: { classroomId: number }) 
 
       {/* Cards */}
       {!isLoading && sorted.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <>
+          <div className="flex flex-col gap-4">
           {sorted.map((a) => (
             <AssignmentCard key={a.id} assignment={a} classroomId={classroomId} filter={filter} />
           ))}
-        </div>
+          </div>
+          
+          {hasNextPage && (
+            <div ref={observerRef} className="py-8 flex justify-center">
+              <span className="text-sm text-muted-foreground animate-pulse">Loading more assignments...</span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

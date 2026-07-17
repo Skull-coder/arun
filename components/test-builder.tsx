@@ -519,7 +519,7 @@ export function TestBuilder({
     </div>
   );
 
-  const SettingsPanel = () => (
+  const renderSettingsPanel = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 shrink-0">
         <Settings2 className="h-4 w-4 text-muted-foreground" />
@@ -644,7 +644,7 @@ export function TestBuilder({
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{questions.length}</Badge>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
+            <SheetContent side="left" className="w-72 p-0" closeClassName="top-1.5 right-3">
               <SheetTitle className="sr-only">Questions</SheetTitle>
               <QuestionsPanel onSelectQuestion={() => setQuestionsSheetOpen(false)} />
             </SheetContent>
@@ -657,9 +657,9 @@ export function TestBuilder({
                 <PanelRight className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 p-0">
+            <SheetContent side="right" className="w-80 p-0" closeClassName="top-1.5 right-3">
               <SheetTitle className="sr-only">Test Settings</SheetTitle>
-              <SettingsPanel />
+              {renderSettingsPanel()}
             </SheetContent>
           </Sheet>
         </div>
@@ -734,7 +734,7 @@ export function TestBuilder({
 
       {/* ── DESKTOP RIGHT SIDEBAR (hidden on mobile) ── */}
       <aside className="hidden lg:flex w-80 shrink-0 flex-col border-l border-border bg-card">
-        <SettingsPanel />
+        {renderSettingsPanel()}
       </aside>
     </div>
   );

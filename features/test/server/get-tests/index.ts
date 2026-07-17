@@ -2,7 +2,7 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, usersTable, testsTable, classroomMembersTable } from "@/features/database/schema";
 
-export async function getTests(userId: string, classroomId: number) {
+export async function getTests(userId: string, classroomId: number, page: number = 1, limit: number = 20) {
   // 1. Get user role
   const [user] = await db
     .select({ role: usersTable.role })
@@ -78,5 +78,9 @@ export async function getTests(userId: string, classroomId: number) {
     ? testsWithStatus 
     : testsWithStatus.filter(t => t.status !== "draft");
 
-  return { tests: finalTests, status: 200 };
+  const offset = (page - 1) * limit;
+  const paginated = finalTests.slice(offset, offset + limit);
+  const hasNextPage = finalTests.length > offset + limit;
+
+  return { tests: paginated, nextCursor: hasNextPage ? page + 1 : null, status: 200 };
 }

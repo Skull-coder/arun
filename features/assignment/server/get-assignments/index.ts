@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { assignmentsTable, classroomsTable, classroomMembersTable } from "@/features/database/schema";
 import { eq, desc, and } from "drizzle-orm";
 
-export async function getAssignments(classroomId: number) {
+export async function getAssignments(classroomId: number, page: number = 1, limit: number = 20) {
+  const offset = (page - 1) * limit;
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -47,9 +48,14 @@ export async function getAssignments(classroomId: number) {
       .select()
       .from(assignmentsTable)
       .where(eq(assignmentsTable.classroomId, classroomId))
-      .orderBy(desc(assignmentsTable.createdAt));
+      .orderBy(desc(assignmentsTable.createdAt))
+      .limit(limit + 1)
+      .offset(offset);
 
-    return { assignments };
+    const hasNextPage = assignments.length > limit;
+    const paginatedAssignments = hasNextPage ? assignments.slice(0, limit) : assignments;
+
+    return { assignments: paginatedAssignments, nextCursor: hasNextPage ? page + 1 : null };
   } catch (error) {
     console.error("Get assignments error:", error);
     return { error: "Failed to fetch assignments", status: 500 };

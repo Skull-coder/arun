@@ -16,12 +16,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Read query params
   const { searchParams } = new URL(req.url);
   const markAsRead = searchParams.get("markAsRead") === "true";
+  const page = parseInt(searchParams.get("page") || "1", 10);
 
-  const result = await getUpdates(userId, classroomId, markAsRead);
+  const result = await getUpdates(userId, classroomId, markAsRead, page);
   if (result.error) return NextResponse.json({ error: result.error }, { status: result.status });
 
   return NextResponse.json({ 
     updates: result.updates, 
+    nextCursor: result.nextCursor,
     lastReadAt: result.lastReadAt
   }, { status: 200 });
 }

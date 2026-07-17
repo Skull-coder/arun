@@ -10,10 +10,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const classroomId = parseInt(id);
 
-  const result = await getAssignments(classroomId);
+  const { searchParams } = new URL(req.url);
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
+  const result = await getAssignments(classroomId, page);
   if (result.error) return NextResponse.json({ error: result.error }, { status: result.status });
 
-  return NextResponse.json({ assignments: result.assignments }, { status: 200 });
+  return NextResponse.json({ assignments: result.assignments, nextCursor: result.nextCursor }, { status: 200 });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

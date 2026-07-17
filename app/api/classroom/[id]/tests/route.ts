@@ -13,13 +13,16 @@ export async function GET(
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
-  const { id } = await params;
-  const classroomId = parseInt(id, 10);
+  const paramsObj = await params;
+  const classroomId = parseInt(paramsObj.id, 10);
   if (isNaN(classroomId)) {
     return NextResponse.json({ error: "Invalid classroom ID" }, { status: 400 });
   }
 
-  const result = await getTests(userId, classroomId);
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
+  const result = await getTests(userId, classroomId, page);
   
   if ("error" in result) {
     return NextResponse.json(
@@ -29,7 +32,7 @@ export async function GET(
   }
 
   return NextResponse.json(
-    { tests: result.tests },
+    { tests: result.tests, nextCursor: result.nextCursor },
     { status: result.status }
   );
 }

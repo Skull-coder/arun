@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetClassroom } from "@/hooks/tanstackQuery/classroom/use-get-classroom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,17 @@ export function ClassroomLayoutClient({
   const { data: unreadCount = 0 } = useGetUnreadUpdatesCount(classroomId);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Lock body scroll so the browser document doesn't scroll past the
+  // painted background into a black void. Needed because educator uses
+  // real Next.js page routing which adds extra wrapper divs.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -75,15 +86,13 @@ export function ClassroomLayoutClient({
 
   const SidebarContent = ({ isMobile = false, onClose }: { isMobile?: boolean, onClose?: () => void }) => (
     <div className="flex flex-col h-full bg-card">
-      <div className={cn("shrink-0 flex items-center px-4 border-border", isMobile ? "h-14" : "h-[72px] border-b")}>
-        {!isMobile && (
-          <Button asChild variant="ghost" className={cn("w-full justify-start gap-2 text-muted-foreground hover:text-foreground", collapsed && "justify-center px-0")}>
-            <Link href="/dashboard">
-              <ArrowLeft className="h-4 w-4 shrink-0" />
-              {!collapsed && "Back to Dashboard"}
-            </Link>
-          </Button>
-        )}
+      <div className={cn("shrink-0 flex items-center px-4 border-b border-border", isMobile ? "h-14" : "h-[72px]")}>
+        <Button asChild variant="ghost" className={cn("justify-start gap-2 text-muted-foreground hover:text-foreground", !isMobile && collapsed ? "justify-center px-0 w-full" : "px-2 -ml-2")}>
+          <Link href="/dashboard">
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            {(!collapsed || isMobile) && <span className="font-medium">Back to Dashboard</span>}
+          </Link>
+        </Button>
       </div>
       <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
         {navItems.map((item) => (
@@ -150,7 +159,7 @@ export function ClassroomLayoutClient({
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-64 p-0">
+                <SheetContent side="left" className="w-64 p-0" closeClassName="top-3 right-3">
                   <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                   <SidebarContent isMobile={true} onClose={() => setIsMobileMenuOpen(false)} />
                 </SheetContent>

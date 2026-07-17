@@ -77,8 +77,8 @@ export function EducatorStudentsClient({ classroomId }: { classroomId: number })
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Filters */}
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col md:flex-row md:items-center gap-3 rounded-lg border border-border bg-card p-2">
+        <div className="relative flex-1 w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search students..."
@@ -87,8 +87,8 @@ export function EducatorStudentsClient({ classroomId }: { classroomId: number })
             className="pl-9 h-9 border-none shadow-none focus-visible:ring-0"
           />
         </div>
-        <Separator orientation="vertical" className="h-6" />
-        <div className="flex items-center gap-2">
+        <Separator orientation="vertical" className="hidden md:block h-6" />
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {[
             { key: "all", label: "All Students" },
             { key: "approved", label: "Approved Only" },
@@ -110,7 +110,7 @@ export function EducatorStudentsClient({ classroomId }: { classroomId: number })
         </div>
         {(searchQuery || statusFilter !== "all") && (
           <>
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="hidden md:block h-6" />
             <Button
               variant="ghost"
               size="sm"
@@ -124,12 +124,12 @@ export function EducatorStudentsClient({ classroomId }: { classroomId: number })
       </div>
 
       {/* Table */}
-      <div className="rounded-md border border-border bg-card">
+      <div className="rounded-md border border-border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Student Name</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
               <TableHead>Roll Number</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -149,8 +149,8 @@ export function EducatorStudentsClient({ classroomId }: { classroomId: number })
                 
                 return (
                   <TableRow key={m.id}>
-                    <TableCell className="font-medium">{studentName}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.student.email}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{studentName}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">{m.student.email}</TableCell>
                     <TableCell className="font-mono text-xs">{m.student.rollNumber || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={isPending ? "destructive" : "secondary"} className={isPending ? "bg-orange-500 hover:bg-orange-600 text-white border-transparent" : ""}>

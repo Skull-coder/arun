@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 export const useGetTests = (classroomId: number | null) => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["tests", classroomId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       if (!classroomId) return { tests: [] };
       
-      const response = await fetch(`/api/classroom/${classroomId}/tests`);
+      const response = await fetch(`/api/classroom/${classroomId}/tests?page=${pageParam}`);
       const result = await response.json();
 
       if (!response.ok) {
@@ -15,6 +15,8 @@ export const useGetTests = (classroomId: number | null) => {
 
       return result; // returns { tests: ... }
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialPageParam: 1,
     enabled: !!classroomId,
   });
 };

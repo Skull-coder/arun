@@ -4,21 +4,31 @@ import { useRef, useEffect } from "react";
 import { useGetUpdates } from "@/hooks/tanstackQuery/update/use-get-updates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Megaphone } from "lucide-react";
+import { Sparkles, Megaphone, Loader2 } from "lucide-react";
+import { useInView } from "react-intersection-observer";
 import { UpdateMessage } from "./update-message";
 
 export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
   // Fetch with markAsRead = true
-  const { data, isLoading } = useGetUpdates(classroomId, true);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetUpdates(classroomId, true);
   
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const { ref: observerRef, inView } = useInView();
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   // Auto-scroll to bottom on load
+  const initialLoadRef = useRef(true);
   useEffect(() => {
-    if (data?.updates) {
+    if (data?.pages?.[0]?.updates && initialLoadRef.current) {
       endOfMessagesRef.current?.scrollIntoView({ behavior: "instant" });
+      initialLoadRef.current = false;
     }
-  }, [data?.updates?.length]);
+  }, [data?.pages?.[0]?.updates?.length]);
 
   if (isLoading) {
     return (
@@ -30,7 +40,7 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
     );
   }
 
-  const updates = data?.updates || [];
+  const updates = data?.pages?.flatMap(p => p.updates) || [];
   // The backend returned the lastReadAt from *before* it marked them as read in this request.
   const oldLastReadAt = data?.lastReadAt ? new Date(data.lastReadAt).getTime() : 0;
   
@@ -67,7 +77,13 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
             </div>
           </div>
         ) : (
-          sortedUpdates.map((u) => {
+          <>
+            {hasNextPage && (
+              <div ref={observerRef} className="py-4 flex justify-center">
+                {isFetchingNextPage ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : <div className="h-6" />}
+              </div>
+            )}
+            {sortedUpdates.map((u) => {
             const createdAtTime = new Date(u.createdAt).getTime();
             const isNew = createdAtTime > oldLastReadAt;
 
@@ -107,7 +123,8 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
                 />
               </div>
             );
-          })
+          })}
+          </>
         )}
         <div ref={endOfMessagesRef} />
       </div>
