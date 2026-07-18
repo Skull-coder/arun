@@ -16,6 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +41,7 @@ import {
   Type,
   ToggleLeft,
   ListOrdered,
+  Menu,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -438,6 +446,7 @@ export default function EditQuizPage() {
   const [quizDescription, setQuizDescription] = useState("");
   const [questions, setQuestions] = useState<LocalQuestion[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [mobileQuestionsOpen, setMobileQuestionsOpen] = useState(false);
 
   const hasLoaded = useRef(false);
 
@@ -537,8 +546,8 @@ export default function EditQuizPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* ── LEFT SIDEBAR: Question List ── */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card">
+      {/* ── LEFT SIDEBAR (Desktop): Question List ── */}
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-card">
         {/* Header */}
         <div className="flex items-center gap-2 border-b border-border px-3 py-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
@@ -620,38 +629,120 @@ export default function EditQuizPage() {
         </div>
       </aside>
 
-      {/* ── MAIN AREA ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* ── MAIN CONTENT ── */}
+      <div className="flex-1 flex flex-col bg-muted/20">
+        
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border bg-card px-4 md:px-8 py-4 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {/* Mobile Back / Questions Trigger */}
+              <Sheet open={mobileQuestionsOpen} onOpenChange={setMobileQuestionsOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="md:hidden h-10 w-10 shrink-0">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+                  <SheetHeader className="px-4 py-3 border-b border-border text-left">
+                    <SheetTitle className="flex items-center justify-between">
+                      <span className="font-semibold text-sm">Questions</span>
+                      <Badge variant="secondary" className="text-xs">{questions.length}</Badge>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto py-1">
+                    {questions.map((q, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => { setActiveIdx(idx); setMobileQuestionsOpen(false); }}
+                        className={cn(
+                          "group flex cursor-pointer items-center gap-2 px-3 py-2.5 transition-colors",
+                          activeIdx === idx ? "bg-primary/10" : "hover:bg-muted"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold",
+                            activeIdx === idx
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {idx + 1}
+                        </div>
+                        <TypeIcon type={q.type} />
+                        <span
+                          className={cn(
+                            "flex-1 truncate text-xs",
+                            activeIdx === idx ? "font-medium text-primary" : "text-foreground"
+                          )}
+                        >
+                          {q.text.trim() || <span className="italic text-muted-foreground">Untitled</span>}
+                        </span>
+                        {questions.length > 1 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteQuestion(idx); }}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive md:h-5 md:w-5 md:rounded md:bg-transparent md:text-muted-foreground md:hover:text-destructive md:hidden md:group-hover:flex"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Separator />
+                  <div className="p-3 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Add Question</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {QUESTION_TYPES.map((qt) => {
+                        const Icon = qt.icon;
+                        return (
+                          <Button
+                            key={qt.value}
+                            variant="outline"
+                            size="sm"
+                            className="h-8 justify-start gap-1.5 px-2 text-xs"
+                            onClick={() => { addQuestion(qt.value); setMobileQuestionsOpen(false); }}
+                          >
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{qt.label}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
 
-        {/* Top bar: Quiz title + save */}
-        <div className="border-b border-border bg-card px-6 py-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-1">
-              <input
-                value={quizTitle}
-                onChange={(e) => setQuizTitle(e.target.value)}
-                placeholder="Untitled Quiz"
-                className="w-full bg-transparent text-xl font-bold text-foreground placeholder:text-muted-foreground/40 outline-none focus:outline-none"
-              />
-              <input
-                value={quizDescription}
-                onChange={(e) => setQuizDescription(e.target.value)}
-                placeholder="Add a short description…"
-                className="w-full bg-transparent text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none focus:outline-none"
-              />
+              <div className="flex-1 space-y-1 w-full">
+                <input
+                  value={quizTitle}
+                  onChange={(e) => setQuizTitle(e.target.value)}
+                  placeholder="Untitled Quiz"
+                  className="w-full bg-transparent text-lg sm:text-xl font-bold text-foreground placeholder:text-muted-foreground/40 outline-none focus:outline-none"
+                />
+                <input
+                  value={quizDescription}
+                  onChange={(e) => setQuizDescription(e.target.value)}
+                  placeholder="Add a short description…"
+                  className="w-full bg-transparent text-xs sm:text-sm text-muted-foreground placeholder:text-muted-foreground/40 outline-none focus:outline-none"
+                />
+              </div>
             </div>
-            <Button onClick={handleSave} disabled={isUpdating} className="shrink-0 mt-1">
-              {isUpdating ? "Saving…" : "Save Changes"}
+          </div>
+          
+          <div className="shrink-0 w-full sm:w-auto">
+            <Button onClick={handleSave} disabled={isUpdating} className="w-full sm:w-auto h-10 sm:h-12 px-6 sm:px-8 text-sm sm:text-base">
+              {isUpdating ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
 
-        {/* Editor area — two columns: main content left, config panel right */}
+        {/* Editor area */}
         {activeQuestion ? (
-          <div className="flex flex-1 overflow-hidden">
-
-            {/* LEFT: Question text + answers — takes up most of the space */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+          <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden">
+            {/* LEFT: Question text + answers */}
+            <div className="flex-1 lg:overflow-y-auto p-4 md:p-8 space-y-6">
 
               {/* Question prompt */}
               <div className="space-y-2">
@@ -688,8 +779,8 @@ export default function EditQuizPage() {
               </div>
             </div>
 
-            {/* RIGHT: Config panel — fixed width, sticky */}
-            <div className="w-64 shrink-0 border-l border-border bg-card overflow-y-auto p-5 space-y-6">
+            {/* RIGHT: Config panel */}
+            <div className="w-full lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-card lg:overflow-y-auto p-4 md:p-5 space-y-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                   Question Settings

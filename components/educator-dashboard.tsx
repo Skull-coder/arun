@@ -54,6 +54,7 @@ import {
   Filter,
   Trophy,
   Copy,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EducatorClassrooms } from "./educator-classrooms";

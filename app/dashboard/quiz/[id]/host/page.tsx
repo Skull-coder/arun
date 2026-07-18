@@ -183,15 +183,32 @@ export default function HostQuizPage() {
   };
 
   const executeAction = (action: any, timeToAddSeconds?: number) => {
+    const successMessages: Record<string, string> = {
+      open:         "Quiz is now open — students can join!",
+      start:        "Question started! Students can now answer.",
+      show_results: "Results revealed to all students.",
+      next:         "Moving to next question…",
+      end:          "Quiz ended successfully.",
+      add_time:     `+${timeToAddSeconds ?? 15} seconds added to the timer.`,
+    };
+    const errorMessages: Record<string, string> = {
+      open:         "Failed to open the quiz. Please try again.",
+      start:        "Failed to start the question. Please try again.",
+      show_results: "Failed to reveal results. Please try again.",
+      next:         "Failed to move to next question. Please try again.",
+      end:          "Failed to end the quiz. Please try again.",
+      add_time:     "Failed to add time. Please try again.",
+    };
+
     hostControl(
       { action, timeToAddSeconds: timeToAddSeconds ?? 15 },
       {
         onSuccess: () => {
-          toast.success(`Action "${action}" successful`);
+          toast.success(successMessages[action] ?? "Done!");
           if (action === "end") setShowEndConfirm(false);
         },
         onError: (err) => {
-          toast.error(err.message || `Failed to ${action} quiz`);
+          toast.error(errorMessages[action] ?? err.message ?? "Something went wrong.");
           if (action === "end") setShowEndConfirm(false);
         },
       }

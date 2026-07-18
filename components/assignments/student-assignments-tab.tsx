@@ -248,6 +248,29 @@ function AssignmentCard({ assignment, classroomId, filter }: { assignment: Assig
             </div>
           )}
 
+          {/* Accepted with feedback */}
+          {submission?.status === "accepted" && feedbackList.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 bg-green-500/5 border border-green-500/20 rounded-xl px-4 py-3 text-sm text-green-700">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>Your submission was accepted. Here's the feedback from your educator:</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5" /> Educator Feedback
+                </p>
+                {feedbackList.map((f: any) => (
+                  <div key={f.feedback.id} className="bg-green-500/5 border border-green-500/10 rounded-xl px-4 py-3 text-sm">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {f.author.firstName} {f.author.lastName} · {format(new Date(f.feedback.createdAt), "MMM d, p")}
+                    </p>
+                    <p className="whitespace-pre-wrap text-foreground">{f.feedback.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Submitted file preview link */}
           {submission && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
