@@ -1,13 +1,32 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 export default function CustomSignIn() {
-  const { signIn, errors, fetchStatus } = useSignIn();
-  const isLoading = fetchStatus === "fetching";
+  const { signIn, fetchStatus } = useSignIn();
+  const { isSignedIn, isLoaded } = useAuth();
+  const router = useRouter();
+  const isLoading = fetchStatus === "fetching" || !isLoaded;
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  // Don't render the sign in form if they are already signed in or loading
+  if (!isLoaded || isSignedIn) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-transparent">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      </div>
+    );
+  }
 
   const handleGoogleSignIn = async () => {
     const { error } = await signIn.sso({
@@ -34,7 +53,7 @@ export default function CustomSignIn() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
           </div>
-          <CardTitle className="text-3xl font-black tracking-tight mb-2">Welcome Back</CardTitle>
+          <CardTitle className="text-3xl font-black tracking-tight mb-2">Welcome to Arun</CardTitle>
           <CardDescription className="text-base text-muted-foreground font-medium">
             Sign in to continue your learning journey
           </CardDescription>

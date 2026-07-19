@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { AppSidebar, MobileAppSidebar, type NavItem } from "@/components/app-sidebar";
 import { EducatorClassrooms } from "./educator-classrooms";
 import { StudentClassrooms } from "./student-classrooms";
-import { BookOpen, GraduationCap, BarChart2 } from "lucide-react";
+import { Timer, GraduationCap, BarChart2 } from "lucide-react";
 
 type Props = {
   user: {
@@ -24,12 +24,12 @@ export default function ClassroomsPageClient({ user }: Props) {
 
   const navItems: NavItem[] = isEducator
     ? [
-        { label: "Library", icon: BookOpen, active: false, onClick: () => router.push("/dashboard") },
+        { label: "My Quizzes", icon: Timer, active: false, onClick: () => router.push("/dashboard") },
         { label: "Classrooms", icon: GraduationCap, active: true, onClick: () => router.push("/dashboard/classrooms") },
         { label: "Reports", icon: BarChart2, soon: true },
       ]
     : [
-        { label: "My Quizzes", icon: BookOpen, active: false, onClick: () => router.push("/dashboard") },
+        { label: "My Quizzes", icon: Timer, active: false, onClick: () => router.push("/dashboard") },
         { label: "Classrooms", icon: GraduationCap, active: true, onClick: () => router.push("/dashboard/classrooms") },
         { label: "Performance", icon: BarChart2, soon: true },
       ];

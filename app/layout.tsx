@@ -25,8 +25,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EduQuiz - Interactive Learning Platform",
-  description: "EduQuiz - An interactive quiz and learning platform for educators and students.",
+  title: "Arun - Interactive Learning Platform",
+  description: "Arun - An interactive quiz and learning platform for educators and students.",
 };
 
 export default function RootLayout({

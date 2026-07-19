@@ -105,7 +105,7 @@ export function ClassroomLayoutClient({
               item.soon ? "opacity-50 pointer-events-none" : "",
               !isMobile && collapsed && "justify-center px-0",
               activeTab === item.id
-                ? "bg-primary/10 text-primary"
+                ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md shadow-orange-500/20"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
             title={!isMobile && collapsed ? item.label : undefined}

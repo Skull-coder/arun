@@ -377,12 +377,12 @@ export function AppSidebar({ user, navItems, children }: AppSidebarProps) {
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary">
-            <LayoutDashboard className="h-4 w-4 text-primary-foreground" />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-red-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+            {/* Arun Sun Logo */}
           </div>
           {!collapsed && (
             <span className="text-sm font-semibold text-card-foreground whitespace-nowrap">
-              EduQuiz
+              Arun
             </span>
           )}
         </div>
@@ -402,7 +402,7 @@ export function AppSidebar({ user, navItems, children }: AppSidebarProps) {
                   "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   collapsed && "justify-center px-0",
                   item.active
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md shadow-orange-500/20"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
@@ -476,11 +476,11 @@ export function MobileAppSidebar({ user, navItems, children }: AppSidebarProps) 
         <SheetContent side="left" className="w-[280px] p-0 flex flex-col bg-card">
           {/* Logo */}
           <div className="flex items-center gap-2.5 px-6 py-5 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary">
-              <LayoutDashboard className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-red-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+              {/* Arun Sun Logo */}
             </div>
             <span className="text-lg font-bold text-card-foreground">
-              EduQuiz
+              Arun
             </span>
           </div>
 
@@ -500,7 +500,7 @@ export function MobileAppSidebar({ user, navItems, children }: AppSidebarProps) 
                   className={cn(
                     "flex w-full items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors",
                     item.active
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md shadow-orange-500/20"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >

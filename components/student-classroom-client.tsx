@@ -108,7 +108,7 @@ export function StudentClassroomClient({ classroomId }: { classroomId: number })
               "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
               !isMobile && collapsed && "justify-center px-0",
               activeTab === item.id
-                ? "bg-primary/10 text-primary"
+                ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md shadow-orange-500/20"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >

@@ -87,7 +87,7 @@ export default function OnboardingPage() {
             <GraduationCap className="h-7 w-7" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Welcome to EduQuiz
+            Welcome to Arun
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
             Tell us how you'll be using the platform so we can personalize your experience.

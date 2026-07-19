@@ -519,7 +519,7 @@ export default function HostQuizPage() {
                 </div>
                 <CardContent className="flex flex-col items-center justify-center p-8 md:p-16">
                   <p className="text-muted-foreground mb-6 font-medium text-lg md:text-2xl text-center">
-                    Go to <span className="font-bold text-foreground">eduquiz.app/join</span> and enter:
+                    Go to <span className="font-bold text-foreground">arun.app/join</span> and enter:
                   </p>
                   <div className="rounded-2xl bg-background border-2 border-primary/30 px-8 md:px-16 py-6 md:py-8 shadow-inner w-full sm:w-auto text-center">
                     <span className="text-5xl md:text-8xl font-black tracking-[0.1em] md:tracking-[0.25em] text-foreground font-mono">
