@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, usersTable } from "@/features/database/schema";
@@ -5,8 +6,9 @@ import { CreateClassroomInput } from "../../validations/createClassroom";
 import { generateJoinCode } from "@/features/quiz/utils/db-utils";
 
 export async function createClassroom(userId: string, data: CreateClassroomInput) {
-  // Verify the caller is an educator
-  const [user] = await db
+  try {
+    // Verify the caller is an educator
+    const [user] = await db
     .select({ role: usersTable.role })
     .from(usersTable)
     .where(eq(usersTable.id, userId))
@@ -40,6 +42,7 @@ export async function createClassroom(userId: string, data: CreateClassroomInput
       if (error.code === "23505" && error.constraint === "classrooms_joinCode_unique") {
         continue;
       }
+      logger.error({ err: error }, "Failed to insert classroom into database");
       return { error: "Failed to insert classroom into database", status: 500 };
     }
   }
@@ -49,4 +52,8 @@ export async function createClassroom(userId: string, data: CreateClassroomInput
   }
 
   return { classroom: created, status: 201 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to create classroom");
+    return { error: "Internal server error", status: 500 };
+  }
 }

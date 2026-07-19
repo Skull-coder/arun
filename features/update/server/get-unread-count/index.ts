@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq, and, gt, count } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { 
@@ -84,7 +85,7 @@ export async function getUnreadUpdatesCount(userId: string, classroomId: number)
 
     return { count: unreadCount, status: 200 };
   } catch (error) {
-    console.error("Error fetching unread count:", error);
+    logger.error({ err: error }, "Error fetching unread count");
     return { error: "Failed to fetch unread count", status: 500 };
   }
 }

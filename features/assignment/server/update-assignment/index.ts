@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { assignmentsTable, classroomsTable } from "@/features/database/schema";
@@ -72,7 +73,7 @@ export async function updateAssignment(data: {
 
     return { assignment: updatedAssignment };
   } catch (error) {
-    console.error("Update assignment error:", error);
+    logger.error({ err: error }, "Update assignment error");
     return { error: "Failed to update assignment", status: 500 };
   }
 }

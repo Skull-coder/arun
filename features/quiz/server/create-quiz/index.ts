@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable } from "@/features/database/schema";
@@ -5,6 +6,7 @@ import { CreateQuizInput } from "@/features/quiz/validations/createQuiz";
 import { generateJoinCode } from "../../utils/db-utils";
 
 export async function createQuiz(userId: string, data: CreateQuizInput) {
+  try {
   // Verify the caller is an educator
   const [user] = await db
     .select({ role: usersTable.role })
@@ -91,4 +93,8 @@ export async function createQuiz(userId: string, data: CreateQuizInput) {
     },
     status: 201 
   };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to create quiz");
+    return { error: "Internal server error", status: 500 };
+  }
 }

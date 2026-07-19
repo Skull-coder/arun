@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { 
@@ -107,7 +108,7 @@ export async function getAssignmentSubmissions(assignmentId: number, classroomId
     return { submission: null };
     
   } catch (error) {
-    console.error("Get submissions error:", error);
+    logger.error({ err: error }, "Get submissions error");
     return { error: "Failed to fetch submissions", status: 500 };
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq, and, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, usersTable, testsTable, testQuestionsTable } from "@/features/database/schema";
@@ -6,78 +7,78 @@ import { getTest } from "../get-test";
 import { pushUpdate } from "@/features/update/server/push-update";
 
 export async function updateTest(userId: string, data: UpdateTestInput) {
-  // 1. Verify user is an educator
-  const [user] = await db
-    .select({ role: usersTable.role })
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-
-  if (!user || user.role !== "educator") {
-    return { error: "Only educators can update tests", status: 403 };
-  }
-
-  // 2. Verify test exists and classroom ownership
-  const [test] = await db
-    .select({ 
-      classroomId: testsTable.classroomId,
-      title: testsTable.title,
-      scheduledAt: testsTable.scheduledAt,
-      endAt: testsTable.endAt,
-      durationMinutes: testsTable.durationMinutes,
-    })
-    .from(testsTable)
-    .where(eq(testsTable.id, data.id))
-    .limit(1);
-
-  if (!test) {
-    return { error: "Test not found", status: 404 };
-  }
-
-  const [classroom] = await db
-    .select({ educatorId: classroomsTable.educatorId })
-    .from(classroomsTable)
-    .where(eq(classroomsTable.id, test.classroomId))
-    .limit(1);
-
-  if (!classroom || classroom.educatorId !== userId) {
-    return { error: "Unauthorized: You do not own this test", status: 403 };
-  }
-
-  // 3. Enforce business rules
-  let computedStatus = "draft";
-  const nowMs = Date.now();
-  if (test.scheduledAt && test.endAt) {
-    const scheduledTime = test.scheduledAt.getTime();
-    const endTime = test.endAt.getTime();
-    if (nowMs < scheduledTime) {
-      computedStatus = "scheduled";
-    } else if (nowMs >= scheduledTime && nowMs < endTime) {
-      computedStatus = "ongoing";
-    } else {
-      computedStatus = "completed";
-    }
-  }
-
-  // If the test is ongoing or completed, we strictly block structural changes.
-  // The educator can ONLY update the `status` (e.g. to end the test early).
-  const isLocked = computedStatus === "ongoing" || computedStatus === "completed";
-  
-  if (isLocked) {
-    const attemptedStructuralChange = 
-      data.title !== undefined || 
-      data.description !== undefined || 
-      data.durationMinutes !== undefined || 
-      data.isNegativeMarking !== undefined ||
-      data.questions !== undefined;
-
-    if (attemptedStructuralChange) {
-      return { error: "Cannot modify test structure or metadata while it is ongoing or completed. You can only change its status.", status: 400 };
-    }
-  }
-
-  // 4. Perform the update in a transaction
   try {
+    // 1. Verify user is an educator
+    const [user] = await db
+      .select({ role: usersTable.role })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+
+    if (!user || user.role !== "educator") {
+      return { error: "Only educators can update tests", status: 403 };
+    }
+
+    // 2. Verify test exists and classroom ownership
+    const [test] = await db
+      .select({ 
+        classroomId: testsTable.classroomId,
+        title: testsTable.title,
+        scheduledAt: testsTable.scheduledAt,
+        endAt: testsTable.endAt,
+        durationMinutes: testsTable.durationMinutes,
+      })
+      .from(testsTable)
+      .where(eq(testsTable.id, data.id))
+      .limit(1);
+
+    if (!test) {
+      return { error: "Test not found", status: 404 };
+    }
+
+    const [classroom] = await db
+      .select({ educatorId: classroomsTable.educatorId })
+      .from(classroomsTable)
+      .where(eq(classroomsTable.id, test.classroomId))
+      .limit(1);
+
+    if (!classroom || classroom.educatorId !== userId) {
+      return { error: "Unauthorized: You do not own this test", status: 403 };
+    }
+
+    // 3. Enforce business rules
+    let computedStatus = "draft";
+    const nowMs = Date.now();
+    if (test.scheduledAt && test.endAt) {
+      const scheduledTime = test.scheduledAt.getTime();
+      const endTime = test.endAt.getTime();
+      if (nowMs < scheduledTime) {
+        computedStatus = "scheduled";
+      } else if (nowMs >= scheduledTime && nowMs < endTime) {
+        computedStatus = "ongoing";
+      } else {
+        computedStatus = "completed";
+      }
+    }
+
+    // If the test is ongoing or completed, we strictly block structural changes.
+    // The educator can ONLY update the `status` (e.g. to end the test early).
+    const isLocked = computedStatus === "ongoing" || computedStatus === "completed";
+    
+    if (isLocked) {
+      const attemptedStructuralChange = 
+        data.title !== undefined || 
+        data.description !== undefined || 
+        data.durationMinutes !== undefined || 
+        data.isNegativeMarking !== undefined ||
+        data.questions !== undefined;
+
+      if (attemptedStructuralChange) {
+        return { error: "Cannot modify test structure or metadata while it is ongoing or completed. You can only change its status.", status: 400 };
+      }
+    }
+
+    // 4. Perform the update in a transaction
     await db.transaction(async (tx) => {
       let totalMarks = undefined;
       let totalQuestions = undefined;
@@ -204,16 +205,15 @@ export async function updateTest(userId: string, data: UpdateTestInput) {
       }
     }
 
-  } catch (error) {
-    console.error("Test update error:", error);
-    return { error: "Failed to update test", status: 500 };
-  }
+    // 6. Fetch the fresh test using the existing getTest logic
+    const result = await getTest(userId, data.id);
+    if (result.error) {
+      return { error: "Test updated but could not fetch result", status: 200 };
+    }
 
-  // 6. Fetch the fresh test using the existing getTest logic
-  const result = await getTest(userId, data.id);
-  if (result.error) {
-    return { error: "Test updated but could not fetch result", status: 200 };
+    return { test: result.test, questions: result.questions, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to update test");
+    return { error: "Internal server error", status: 500 };
   }
-
-  return { test: result.test, questions: result.questions, status: 200 };
 }

@@ -1,10 +1,12 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, classroomMembersTable } from "@/features/database/schema";
 
 export async function updateMemberStatus(classroomId: number, studentId: string, educatorId: string, status: "approved" | "rejected") {
-  // Verify the educator owns the classroom
-  const [classroom] = await db
+  try {
+    // Verify the educator owns the classroom
+    const [classroom] = await db
     .select({ educatorId: classroomsTable.educatorId })
     .from(classroomsTable)
     .where(eq(classroomsTable.id, classroomId))
@@ -45,4 +47,8 @@ export async function updateMemberStatus(classroomId: number, studentId: string,
   }
 
   return { member: updated, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to update member status");
+    return { error: "Internal server error", status: 500 };
+  }
 }

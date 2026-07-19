@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { db } from "@/lib/db";
 import { classroomUpdatesTable } from "@/features/database/schema";
 
@@ -26,7 +27,7 @@ export async function pushUpdate(params: PushUpdateParams) {
 
     return { update, status: 201 };
   } catch (error) {
-    console.error("Error pushing update:", error);
+    logger.error({ err: error }, "Error pushing update");
     return { error: "Failed to push update", status: 500 };
   }
 }

@@ -1,9 +1,11 @@
+import { logger } from "@/lib/logger";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, classroomMembersTable, usersTable } from "@/features/database/schema";
 
 export async function getClassrooms(userId: string) {
-  const [user] = await db
+  try {
+    const [user] = await db
     .select({ role: usersTable.role })
     .from(usersTable)
     .where(eq(usersTable.id, userId))
@@ -34,5 +36,9 @@ export async function getClassrooms(userId: string) {
       .orderBy(desc(classroomMembersTable.joinedAt));
       
     return { classrooms: memberships, status: 200 };
+  }
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to get classrooms");
+    return { error: "Internal server error", status: 500 };
   }
 }

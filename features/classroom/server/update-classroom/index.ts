@@ -1,11 +1,13 @@
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable } from "@/features/database/schema";
 import { UpdateClassroomInput } from "../../validations/updateClassroom";
 
 export async function updateClassroom(classroomId: number, userId: string, data: UpdateClassroomInput) {
-  // Verify the classroom exists and the caller is the educator who owns it
-  const [existing] = await db
+  try {
+    // Verify the classroom exists and the caller is the educator who owns it
+    const [existing] = await db
     .select({ educatorId: classroomsTable.educatorId })
     .from(classroomsTable)
     .where(eq(classroomsTable.id, classroomId))
@@ -30,4 +32,8 @@ export async function updateClassroom(classroomId: number, userId: string, data:
     .returning();
 
   return { classroom: updatedClassroom, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to update classroom");
+    return { error: "Internal server error", status: 500 };
+  }
 }

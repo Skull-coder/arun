@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { 
@@ -147,7 +148,7 @@ export async function getStudentAnalytics(classroomId: number) {
       upcoming,
     };
   } catch (error) {
-    console.error("Student Analytics Error:", error);
+    logger.error({ err: error }, "Student Analytics Error");
     return { error: "Failed to fetch student analytics", status: 500 };
   }
 }

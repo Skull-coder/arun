@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { assignmentsTable, classroomsTable, classroomMembersTable } from "@/features/database/schema";
@@ -57,7 +58,7 @@ export async function getAssignments(classroomId: number, page: number = 1, limi
 
     return { assignments: paginatedAssignments, nextCursor: hasNextPage ? page + 1 : null };
   } catch (error) {
-    console.error("Get assignments error:", error);
+    logger.error({ err: error }, "Get assignments error");
     return { error: "Failed to fetch assignments", status: 500 };
   }
 }

@@ -1,8 +1,10 @@
+import { logger } from "@/lib/logger";
 import { eq, desc, asc, count, inArray, sql, and, gt, lt, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, usersTable, quizSessionsTable, studentAnswersTable } from "@/features/database/schema";
 
 export async function getQuizzes(userId: string, page: number = 1, limit: number = 20) {
+  try {
   // First, fetch the user's role
   const user = await db
     .select({ role: usersTable.role })
@@ -19,6 +21,10 @@ export async function getQuizzes(userId: string, page: number = 1, limit: number
     return getEducatorQuizzes(userId, page, limit);
   } else {
     return getStudentQuizzes(userId, page, limit);
+  }
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to get quizzes");
+    return { error: "Internal server error", status: 500 };
   }
 }
 
@@ -80,6 +86,7 @@ async function getStudentQuizzes(userId: string, page: number, limit: number) {
 }
 
 export async function getQuiz(quizId: number, userId: string) {
+  try {
   // 1. Fetch just the quiz row first
   const [quizRow] = await db
     .select()
@@ -224,4 +231,8 @@ export async function getQuiz(quizId: number, userId: string) {
   }
 
   return { quiz: { ...quizRow, questions, studentAnswer, sessionTotalScore: session.totalScore, studentRank } };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to get quiz");
+    return { error: "Internal server error", status: 500 };
+  }
 }

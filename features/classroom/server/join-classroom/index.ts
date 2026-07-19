@@ -1,11 +1,13 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, classroomMembersTable, usersTable } from "@/features/database/schema";
 import { JoinClassroomInput } from "../../validations/joinClassroom";
 
 export async function joinClassroom(userId: string, data: JoinClassroomInput) {
-  // First, verify caller is a student
-  const [user] = await db
+  try {
+    // First, verify caller is a student
+    const [user] = await db
     .select({ role: usersTable.role })
     .from(usersTable)
     .where(eq(usersTable.id, userId))
@@ -62,4 +64,8 @@ export async function joinClassroom(userId: string, data: JoinClassroomInput) {
     .returning();
 
   return { membership, status: 201 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to join classroom");
+    return { error: "Internal server error", status: 500 };
+  }
 }

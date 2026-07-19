@@ -1,10 +1,12 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, classroomMembersTable } from "@/features/database/schema";
 
 export async function removeMember(classroomId: number, studentId: string, educatorId: string) {
-  // Verify ownership
-  const [classroom] = await db
+  try {
+    // Verify ownership
+    const [classroom] = await db
     .select({ educatorId: classroomsTable.educatorId })
     .from(classroomsTable)
     .where(eq(classroomsTable.id, classroomId))
@@ -25,4 +27,8 @@ export async function removeMember(classroomId: number, studentId: string, educa
     );
 
   return { success: true, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to remove member");
+    return { error: "Internal server error", status: 500 };
+  }
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { assignmentSubmissionsTable } from "@/features/database/schema";
@@ -42,7 +43,7 @@ export async function unsubmitAssignment(assignmentId: number) {
 
     return { success: true };
   } catch (error) {
-    console.error("Unsubmit assignment error:", error);
+    logger.error({ err: error }, "Unsubmit assignment error");
     return { error: "Failed to unsubmit assignment", status: 500 };
   }
 }

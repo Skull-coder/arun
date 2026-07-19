@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { assignmentsTable, classroomsTable } from "@/features/database/schema";
@@ -54,7 +55,7 @@ export async function createAssignment(data: {
 
     return { assignment };
   } catch (error) {
-    console.error("Create assignment error:", error);
+    logger.error({ err: error }, "Create assignment error");
     return { error: "Failed to create assignment", status: 500 };
   }
 }

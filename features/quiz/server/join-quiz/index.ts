@@ -1,9 +1,11 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, quizSessionsTable } from "@/features/database/schema";
 import { JoinQuizInput } from "@/features/quiz/validations/joinQuiz";
 
 export async function joinQuiz(userId: string, data: JoinQuizInput) {
+  try {
   const { joinCode } = data;
 
   // Find the quiz by join code
@@ -46,4 +48,8 @@ export async function joinQuiz(userId: string, data: JoinQuizInput) {
   });
 
   return { quizId: quiz.id, status: 201 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to join quiz");
+    return { error: "Internal server error", status: 500 };
+  }
 }

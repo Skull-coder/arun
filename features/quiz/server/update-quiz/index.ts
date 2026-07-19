@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq, and, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable } from "@/features/database/schema";
@@ -5,6 +6,7 @@ import { UpdateQuizInput } from "@/features/quiz/validations/updateQuiz";
 import { requireEducatorOwnership, getQuizOrFail } from "../../utils/db-utils";
 
 export async function updateQuiz(quizId: number, userId: string, data: UpdateQuizInput) {
+  try {
   const authResult = await requireEducatorOwnership(quizId, userId);
   if ("error" in authResult) {
     return authResult;
@@ -119,4 +121,8 @@ export async function updateQuiz(quizId: number, userId: string, data: UpdateQui
   }
 
   return { quiz: result.quiz };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to update quiz");
+    return { error: "Internal server error", status: 500 };
+  }
 }

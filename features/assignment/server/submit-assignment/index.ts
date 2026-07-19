@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { 
@@ -91,7 +92,7 @@ export async function submitAssignment(data: {
     }
 
   } catch (error) {
-    console.error("Submit assignment error:", error);
+    logger.error({ err: error }, "Submit assignment error");
     return { error: "Failed to submit assignment", status: 500 };
   }
 }

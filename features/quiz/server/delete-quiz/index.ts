@@ -1,8 +1,10 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable } from "@/features/database/schema";
 
 export async function deleteQuiz(quizId: number, userId: string) {
+  try {
   const [deleted] = await db
     .delete(quizzesTable)
     .where(
@@ -18,4 +20,8 @@ export async function deleteQuiz(quizId: number, userId: string) {
   }
 
   return { success: true };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to delete quiz");
+    return { error: "Internal server error", status: 500 };
+  }
 }

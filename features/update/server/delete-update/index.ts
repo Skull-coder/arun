@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomUpdatesTable, usersTable, classroomsTable } from "@/features/database/schema";
@@ -51,7 +52,7 @@ export async function deleteUpdate(userId: string, updateId: number) {
 
     return { success: true, status: 200 };
   } catch (error) {
-    console.error("Error deleting update:", error);
+    logger.error({ err: error }, "Error deleting update");
     return { error: "Failed to delete update", status: 500 };
   }
 }

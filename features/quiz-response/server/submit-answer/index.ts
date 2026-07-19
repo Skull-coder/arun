@@ -1,10 +1,12 @@
+import { logger } from "@/lib/logger";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { questionsTable, quizSessionsTable, studentAnswersTable, quizzesTable } from "@/features/database/schema";
 import { SubmitAnswerPayload } from "@/features/quiz-response/validations/submitAnswer";
 
 export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
-  const { quizId, questionId, type, answer } = data;
+  try {
+    const { quizId, questionId, type, answer } = data;
 
   // 1. Fetch Session, Quiz, and Question in a SINGLE optimized DB roundtrip!
   const [dataRow] = await db
@@ -149,4 +151,8 @@ export async function submitAnswer(userId: string, data: SubmitAnswerPayload) {
 
   // Do not expose correct answers in the response to prevent cheating!
   return { success: true, isCorrect, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to submit answer");
+    return { error: "Internal server error", status: 500 };
+  }
 }

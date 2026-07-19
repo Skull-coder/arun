@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -70,7 +71,7 @@ export async function editUpdate(
 
     return { update: updated, status: 200 };
   } catch (error) {
-    console.error("Error editing update:", error);
+    logger.error({ err: error }, "Error editing update");
     return { error: "Failed to edit update", status: 500 };
   }
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { 
@@ -65,7 +66,7 @@ export async function evaluateAssignment(data: {
 
     return { submission: updatedSubmission, success: true };
   } catch (error) {
-    console.error("Evaluate assignment error:", error);
+    logger.error({ err: error }, "Evaluate assignment error");
     return { error: "Failed to evaluate assignment", status: 500 };
   }
 }

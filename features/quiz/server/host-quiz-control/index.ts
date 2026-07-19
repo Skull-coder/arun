@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq, asc, desc, gt, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzesTable, questionsTable, quizSessionsTable, usersTable } from "@/features/database/schema";
@@ -68,6 +69,7 @@ async function broadcastState(quizId: number, status: string, questionId: number
 }
 
 export async function hostQuizControl(quizId: number, userId: string, data: HostQuizControlInput) {
+  try {
   const authResult = await requireEducatorOwnership(quizId, userId);
   if ("error" in authResult) {
     return authResult;
@@ -210,4 +212,8 @@ export async function hostQuizControl(quizId: number, userId: string, data: Host
   }
 
   return { error: "Invalid action", status: 400 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to control quiz");
+    return { error: "Internal server error", status: 500 };
+  }
 }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq, desc, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { 
@@ -98,7 +99,7 @@ export async function getUpdates(userId: string, classroomId: number, markAsRead
 
     return { updates: paginatedUpdates, nextCursor: hasNextPage ? page + 1 : null, lastReadAt, status: 200 };
   } catch (error) {
-    console.error("Error fetching updates:", error);
+    logger.error({ err: error }, "Error fetching updates");
     return { error: "Failed to fetch updates", status: 500 };
   }
 }

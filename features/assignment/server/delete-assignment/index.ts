@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { assignmentsTable, classroomsTable } from "@/features/database/schema";
@@ -33,7 +34,7 @@ export async function deleteAssignment(assignmentId: number, classroomId: number
 
     return { success: true };
   } catch (error) {
-    console.error("Delete assignment error:", error);
+    logger.error({ err: error }, "Delete assignment error");
     return { error: "Failed to delete assignment", status: 500 };
   }
 }

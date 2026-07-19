@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { usersTable } from "@/features/database/schema";
@@ -38,7 +39,7 @@ export async function updateUserRole(userId: string, data: UpdateRoleInput) {
       });
       return { success: true, role, status: 200 };
     } catch (e) {
-      console.error("Clerk user fetch failed:", e);
+      logger.error({ err: e }, "Clerk user fetch failed");
       return { error: "User not found in database or Clerk", status: 404 };
     }
   }

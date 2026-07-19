@@ -1,10 +1,12 @@
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable } from "@/features/database/schema";
 
 export async function deleteClassroom(classroomId: number, userId: string) {
-  // Verify the classroom exists and the caller is the educator who owns it
-  const [existing] = await db
+  try {
+    // Verify the classroom exists and the caller is the educator who owns it
+    const [existing] = await db
     .select({ educatorId: classroomsTable.educatorId })
     .from(classroomsTable)
     .where(eq(classroomsTable.id, classroomId))
@@ -24,4 +26,8 @@ export async function deleteClassroom(classroomId: number, userId: string) {
   await db.delete(classroomsTable).where(eq(classroomsTable.id, classroomId));
 
   return { success: true, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to delete classroom");
+    return { error: "Internal server error", status: 500 };
+  }
 }

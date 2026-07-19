@@ -1,10 +1,12 @@
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { classroomsTable, classroomMembersTable, usersTable } from "@/features/database/schema";
 
 export async function getMembers(classroomId: number, educatorId: string, statusFilter?: "pending" | "approved") {
-  // Verify ownership
-  const [classroom] = await db
+  try {
+    // Verify ownership
+    const [classroom] = await db
     .select({ educatorId: classroomsTable.educatorId })
     .from(classroomsTable)
     .where(eq(classroomsTable.id, classroomId))
@@ -38,4 +40,8 @@ export async function getMembers(classroomId: number, educatorId: string, status
     .where(and(...conditions));
 
   return { members, status: 200 };
+  } catch (error: any) {
+    logger.error({ err: error }, "Failed to get members");
+    return { error: "Internal server error", status: 500 };
+  }
 }

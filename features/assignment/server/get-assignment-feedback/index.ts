@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { 
@@ -31,7 +32,7 @@ export async function getAssignmentFeedback(submissionId: number) {
 
     return { feedback };
   } catch (error) {
-    console.error("Get feedback error:", error);
+    logger.error({ err: error }, "Get feedback error");
     return { error: "Failed to fetch feedback", status: 500 };
   }
 }
