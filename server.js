@@ -95,4 +95,31 @@ app.prepare().then(() => {
     .listen(port, () => {
       console.log(`> 🚀 Socket.io + Next.js Server ready on http://${hostname}:${port}`);
     });
+
+  // ─── GRACEFUL SHUTDOWN ───
+  const gracefulShutdown = (signal) => {
+    console.log(`\n📦 Received ${signal}, starting graceful shutdown...`);
+
+    // Force kill if graceful shutdown takes longer than 10 seconds
+    setTimeout(() => {
+      console.error("🛑 Could not close connections in time, forcefully shutting down");
+      process.exit(1);
+    }, 10000).unref();
+
+    // 1. Stop taking new WebSocket connections and close active ones
+    io.close(() => {
+      console.log("🔌 Socket.io server closed");
+      
+      // 2. Stop taking new HTTP requests
+      httpServer.close(() => {
+        console.log("🌐 HTTP server closed");
+        console.log("✅ Graceful shutdown complete");
+        process.exit(0);
+      });
+    });
+  };
+
+  // Listen for Docker/PM2/Systemd kill signals
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 });
