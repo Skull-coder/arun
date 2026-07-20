@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/nextjs/server";
 import { editUpdate } from "@/features/update/server/edit-update";
 import { deleteUpdate } from "@/features/update/server/delete-update";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string, updateId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string, updateId: string }> }) {
   const { userId } = getAuth(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ update: result.update }, { status: 200 });
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string, updateId: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string, updateId: string }> }) {
   const { userId } = getAuth(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

@@ -237,7 +237,7 @@ export function SpeedGraderClient({
   const [studentsSheetOpen, setStudentsSheetOpen] = useState(false);
   const [feedbackSheetOpen, setFeedbackSheetOpen] = useState(false);
 
-  const assignment = assignmentsData?.assignments?.find((a: any) => a.id === assignmentId);
+  const assignment = assignmentsData?.pages?.flatMap((p: any) => p.assignments)?.find((a: any) => a.id === assignmentId);
   const submissions: Submission[] = submissionsData?.submissions ?? [];
 
   const STATUS_FILTERS = ["all", "submitted", "resubmitted", "returned", "accepted"];

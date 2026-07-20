@@ -72,7 +72,6 @@ export async function getEducatorAnalytics(classroomId: number) {
     let totalObtainedMarks = 0;
     const completedSessions = allSessions.filter(s => s.status === "completed" || s.status === "auto_submitted");
     const completedTests = allTests.filter(t => {
-      if (t.status === "completed") return true;
       if (t.scheduledAt && t.durationMinutes) {
         const endTime = new Date(t.scheduledAt).getTime() + t.durationMinutes * 60000;
         return now.getTime() > endTime;
@@ -81,9 +80,10 @@ export async function getEducatorAnalytics(classroomId: number) {
     });
     
     completedTests.forEach(test => {
-      if (!test.totalMarks) return;
+      const marks = test.totalMarks;
+      if (!marks) return;
       approvedStudents.forEach(student => {
-        totalMaxMarks += test.totalMarks; // Expected max marks for this student
+        totalMaxMarks += marks; // Expected max marks for this student
         const session = completedSessions.find(s => s.testId === test.id && s.studentId === student.studentId);
         if (session) {
           totalObtainedMarks += session.totalScore || 0;

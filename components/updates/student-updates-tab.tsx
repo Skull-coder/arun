@@ -42,7 +42,8 @@ export function StudentUpdatesTab({ classroomId }: { classroomId: number }) {
 
   const updates = data?.pages?.flatMap(p => p.updates) || [];
   // The backend returned the lastReadAt from *before* it marked them as read in this request.
-  const oldLastReadAt = data?.lastReadAt ? new Date(data.lastReadAt).getTime() : 0;
+  const firstPage = data?.pages?.[0];
+  const oldLastReadAt = firstPage?.lastReadAt ? new Date(firstPage.lastReadAt).getTime() : 0;
   
   // Sort oldest first for chat flow
   const sortedUpdates = [...updates].sort(

@@ -93,7 +93,6 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date & t
             mode="single"
             selected={date}
             onSelect={handleDateSelect}
-            initialFocus
             className="p-0"
           />
         </div>

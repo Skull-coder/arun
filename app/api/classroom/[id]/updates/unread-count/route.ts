@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { getUnreadUpdatesCount } from "@/features/update/server/get-unread-count";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = getAuth(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

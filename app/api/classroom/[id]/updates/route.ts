@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { classroomsTable } from "@/features/database/schema";
 import { eq } from "drizzle-orm";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = getAuth(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }, { status: 200 });
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = getAuth(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

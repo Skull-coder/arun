@@ -56,6 +56,10 @@ export async function GET(request: Request) {
 
   const result = await getQuizzes(userId, page, limit);
 
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
   return NextResponse.json({ quizzes: result.quizzes, nextCursor: result.nextCursor });
 }
 

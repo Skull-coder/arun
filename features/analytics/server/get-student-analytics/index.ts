@@ -42,7 +42,6 @@ export async function getStudentAnalytics(classroomId: number) {
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
 
     const completedTests = allTests.filter(t => {
-      if (t.status === "completed") return true;
       if (t.scheduledAt && t.durationMinutes) {
         const endTime = new Date(t.scheduledAt).getTime() + t.durationMinutes * 60000;
         return now.getTime() > endTime;
