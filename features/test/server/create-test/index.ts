@@ -82,7 +82,7 @@ export async function createTest(userId: string, data: CreateTestInput) {
     if (result.status === 201 && result.test?.scheduledAt) {
       await pushUpdate({
         classroomId: data.classroomId,
-        content: `A new test "${result.test.title}" has been scheduled for ${new Date(result.test.scheduledAt).toLocaleString()}.`,
+        content: `A new test "${result.test.title}" has been scheduled.`,
         isSystem: true,
         referenceType: "test",
         referenceId: result.test.id,

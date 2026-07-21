@@ -188,7 +188,7 @@ export async function updateTest(userId: string, data: UpdateTestInput) {
         // Was draft, now scheduled
         await pushUpdate({
           classroomId: test.classroomId,
-          content: `A new test "${data.title || test.title}" has been scheduled for ${new Date(data.scheduledAt).toLocaleString()}.`,
+          content: `A new test "${data.title || test.title}" has been scheduled.`,
           isSystem: true,
           referenceType: "test",
           referenceId: data.id,
@@ -197,7 +197,7 @@ export async function updateTest(userId: string, data: UpdateTestInput) {
         // Was scheduled, now rescheduled
         await pushUpdate({
           classroomId: test.classroomId,
-          content: `The test "${data.title || test.title}" has been rescheduled to ${new Date(data.scheduledAt).toLocaleString()}.`,
+          content: `The test "${data.title || test.title}" has been rescheduled.`,
           isSystem: true,
           referenceType: "test",
           referenceId: data.id,
