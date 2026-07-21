@@ -13,6 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+
+function ClientDate({ date }: { date: string | Date }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  
+  if (!mounted) return <span>Loading...</span>;
+  return <span>{format(new Date(date), "MMM d, yyyy 'at' h:mm a")}</span>;
+}
 
 interface UpdateMessageProps {
   update: any;
@@ -77,7 +86,7 @@ export function UpdateMessage({
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
               <span className="font-semibold text-primary text-sm">System Automated</span>
               <span className="text-xs text-muted-foreground">
-                {format(new Date(update.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                <ClientDate date={update.createdAt} />
               </span>
             </div>
             <p className="text-sm leading-relaxed text-foreground/80">{update.content}</p>
@@ -128,7 +137,7 @@ export function UpdateMessage({
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {format(new Date(update.createdAt), "MMM d, yyyy 'at' h:mm a")}
+              <ClientDate date={update.createdAt} />
             </p>
           </div>
 

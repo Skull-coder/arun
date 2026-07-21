@@ -29,6 +29,7 @@ export async function getTest(userId: string, testId: number) {
         scheduledAt: testsTable.scheduledAt,
         endAt: testsTable.endAt,
         createdAt: testsTable.createdAt,
+        isNegativeMarking: testsTable.isNegativeMarking,
         educatorId: classroomsTable.educatorId, // From JOIN
       })
       .from(testsTable)

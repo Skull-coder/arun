@@ -37,6 +37,18 @@ function gradeAnswer(
   isNegativeMarking: boolean
 ): { isCorrect: boolean; score: number } {
   let isCorrect = false;
+  let isAttempted = true;
+
+  if (studentAnswer === null || studentAnswer === undefined || studentAnswer === "") {
+    isAttempted = false;
+  }
+  if (Array.isArray(studentAnswer) && studentAnswer.length === 0) {
+    isAttempted = false;
+  }
+
+  if (!isAttempted) {
+    return { isCorrect: false, score: 0 };
+  }
 
   switch (type) {
     case "single_choice":
