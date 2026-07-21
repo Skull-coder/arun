@@ -20,7 +20,14 @@ function ClientDate({ date }: { date: string | Date }) {
   useEffect(() => setMounted(true), []);
   
   if (!mounted) return <span>Loading...</span>;
-  return <span>{format(new Date(date), "MMM d, yyyy 'at' h:mm a")}</span>;
+  
+  // Force UTC parsing if it's missing the 'Z'
+  let safeDate = date;
+  if (typeof safeDate === "string" && !safeDate.endsWith("Z")) {
+    safeDate = safeDate + "Z";
+  }
+  
+  return <span>{format(new Date(safeDate), "MMM d, yyyy 'at' h:mm a")}</span>;
 }
 
 interface UpdateMessageProps {
