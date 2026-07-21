@@ -1,0 +1,21 @@
+<svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3"
+        flood-color="#f97316" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <circle
+    cx="14"
+    cy="14"
+    r="14"
+    fill="url(#grad)"
+    filter="url(#glow)"
+  />
+</svg>
