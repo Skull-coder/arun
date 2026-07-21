@@ -21,15 +21,22 @@ const envSchema = z.object({
   R2_BUCKET_NAME: z.string(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+let parsedData: any = {};
 
-if (!parsed.success) {
-  console.error(
-    "❌ Invalid environment variables:\n",
-    parsed.error.format(),
-  );
-
-  process.exit(1);
+if (process.env.SKIP_ENV_VALIDATION === "1") {
+  // During Docker build, we don't have secrets like DATABASE_URL.
+  // We just bypass the strict check and use the raw process.env
+  parsedData = process.env;
+} else {
+  const parsed = envSchema.safeParse(process.env);
+  if (!parsed.success) {
+    console.error(
+      "❌ Invalid environment variables:\n",
+      parsed.error.format(),
+    );
+    process.exit(1);
+  }
+  parsedData = parsed.data;
 }
 
-export const env = parsed.data;
+export const env = parsedData as z.infer<typeof envSchema>;
