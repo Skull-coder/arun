@@ -13,6 +13,7 @@ RUN npm install
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+# cache-bust: 2026-07-21
 COPY . .
 
 # Pass in the public clerk key so it gets baked into the frontend
