@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: arun-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: arun
+      # IN PRODUCTION, USE A REAL PASSWORD, NOT TRUST!
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+
+  web:
+    image: skullcoder/arun-project:latest
+    container_name: arun-web-prod
+    restart: always
+    env_file: .env
+    depends_on:
+      - db
+    # We do NOT expose port 3000 to the public! Caddy handles the public traffic safely.
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: arun-caddy
+    restart: always
+    ports:
+      - "80:80"   # HTTP
+      - "443:443" # HTTPS (SSL)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  postgres_data_prod:
+  caddy_data:
+  caddy_config:

@@ -3,11 +3,11 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: eduquiz-db
+    container_name: arun-db
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: eduquiz
+      POSTGRES_DB: arun
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"

@@ -7,3 +7,10 @@ README.md
 .git
 .env
 .env*.local
+
+// Server Deployment Files
+Caddyfile
+docker-compose*.yml
+.github
+.gitignore
+AGENTS.md

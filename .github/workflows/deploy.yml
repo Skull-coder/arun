@@ -34,29 +34,22 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/arun-project:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/arun-project:buildcache,mode=max
 
-  # ─── DEPLOYMENT (Commented out until VPS is ready) ───
-  # deploy:
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Deploy to VPS
-  #       uses: appleboy/ssh-action@v1.0.3
-  #       with:
-  #         host: ${{ secrets.VPS_IP }}
-  #         username: ${{ secrets.VPS_USERNAME }}
-  #         key: ${{ secrets.VPS_SSH_KEY }}
-  #         script: |
-  #           # Pull the latest image
-  #           docker pull ${{ secrets.DOCKER_USERNAME }}/arun-project:latest
-  #           
-  #           # Stop and remove the old container if it exists
-  #           docker stop arun-web || true
-  #           docker rm arun-web || true
-  #           
-  #           # Run the new container, passing environment variables from the server
-  #           docker run -d \
-  #             --name arun-web \
-  #             -p 3000:3000 \
-  #             --restart always \
-  #             --env-file /path/to/your/server/.env \
-  #             ${{ secrets.DOCKER_USERNAME }}/arun-project:latest
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Go to the project folder where docker-compose and .env live
+            cd ~/arun-project
+            
+            # Pull the absolute latest image from Docker Hub
+            docker compose -f docker-compose.prod.yml pull web
+            
+            # Docker Compose magically detects the new image, gracefully stops the old container, and starts the new one!
+            docker compose -f docker-compose.prod.yml up -d

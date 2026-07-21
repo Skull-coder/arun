@@ -1,0 +1,6 @@
+# Production Caddy Configuration
+
+arun.skullcoder.dev {
+    # This automatically intercepts web traffic and routes it to your Next.js container (named 'web' on port 3000)
+    reverse_proxy web:3000
+}
