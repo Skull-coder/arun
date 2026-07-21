@@ -169,6 +169,11 @@ export function LandingPage() {
           </div>
           <span className="hidden sm:inline text-orange-500/30">•</span>
           <span>© 2026 Arun Education. All rights reserved.</span>
+          <span className="hidden sm:inline text-orange-500/30">•</span>
+          <div className="flex items-center gap-3">
+            <Link href="/privacy" className="hover:text-orange-200 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-orange-200 transition-colors">Terms of Service</Link>
+          </div>
         </div>
       </footer>
 
