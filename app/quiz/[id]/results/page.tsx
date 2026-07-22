@@ -7,7 +7,7 @@ import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Trophy, Medal, Crown } from "lucide-react";
+import { ArrowLeft, Trophy, Medal, Crown, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function QuizResultsPage() {
@@ -60,6 +60,32 @@ export default function QuizResultsPage() {
   const quiz = data?.quiz;
   const leaderboard = data?.leaderboard || [];
 
+  const exportToCSV = () => {
+    if (!leaderboard || leaderboard.length === 0) return;
+
+    // Headers: Rank, Roll Number, Student Name, Score
+    const headers = ["Rank", "Roll Number", "Student Name", "Score"];
+
+    // Rows
+    const rows = leaderboard.map((entry: any, index: number) => {
+      const rank = index + 1;
+      const rollNumber = entry.rollNumber || "";
+      const name = `${entry.firstName || ""} ${entry.lastName || ""}`.trim();
+      const score = entry.totalScore;
+      return `"${rank}","${rollNumber}","${name}","${score}"`;
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${quiz?.title || 'quiz'}_results.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const top3 = leaderboard.slice(0, 3);
   const restOfLeaderboard = leaderboard.slice(3);
 
@@ -72,10 +98,16 @@ export default function QuizResultsPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-lg font-bold text-foreground leading-tight">{quiz?.title}</h1>
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Final Results</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-sm md:text-lg font-bold text-foreground leading-tight truncate">{quiz?.title}</h1>
+          <p className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-wider">Final Results</p>
         </div>
+        {isCreator && leaderboard.length > 0 && (
+          <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-2 shrink-0">
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
+          </Button>
+        )}
       </header>
 
       {/* MAIN CONTENT */}

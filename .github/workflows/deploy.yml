@@ -45,11 +45,16 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Go to the project folder where docker-compose and .env live
             cd ~/arun-project
             
-            # Pull the absolute latest image from Docker Hub
+            # Stop and remove old containers
+            docker compose -f docker-compose.prod.yml down
+            
+            # Delete all unused images to free disk space
+            docker image prune -af
+            
+            # Pull the fresh new image from Docker Hub
             docker compose -f docker-compose.prod.yml pull web
             
-            # Docker Compose magically detects the new image, gracefully stops the old container, and starts the new one!
+            # Start everything back up
             docker compose -f docker-compose.prod.yml up -d
